@@ -1,5 +1,10 @@
 # Presentation Commander — Client
 
+> **AI-assisted project.** This codebase was built with the help of
+> [Claude](https://claude.ai), Anthropic's AI assistant — including
+> architecture, implementation, and documentation. Review it accordingly
+> before relying on it in production.
+
 The presentation laptop companion app for
 [presentation-commander-server](https://github.com/allansargeant/presentation-commander-server).
 A bespoke PDF presentation engine built as an Electron + React + TypeScript
