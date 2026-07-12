@@ -12,11 +12,32 @@ interface ProgramOutState {
   currentPage: number
 }
 
+interface DisplayInfo {
+  id: number
+  label: string
+  width: number
+  height: number
+  internal: boolean
+  primary: boolean
+}
+
 let programOutWindow: BrowserWindow | null = null
 let latestProgramOutState: ProgramOutState | null = null
 
 function notesPathFor(pdfPath: string): string {
   return pdfPath.replace(/\.pdf$/i, '.notes.json')
+}
+
+function listDisplays(): DisplayInfo[] {
+  const primary = screen.getPrimaryDisplay()
+  return screen.getAllDisplays().map((d, i) => ({
+    id: d.id,
+    label: d.label || (d.internal ? 'Built-in Display' : `Display ${i + 1}`),
+    width: d.bounds.width,
+    height: d.bounds.height,
+    internal: d.internal ?? false,
+    primary: d.id === primary.id
+  }))
 }
 
 function loadRenderer(win: BrowserWindow, mode?: string): void {
@@ -70,12 +91,13 @@ function closeProgramOut(): void {
   programOutWindow?.close()
 }
 
-function openProgramOut(mainWindow: BrowserWindow): void {
+function openProgramOut(mainWindow: BrowserWindow, displayId?: number): void {
   if (programOutWindow) return
 
   const displays = screen.getAllDisplays()
   const primary = screen.getPrimaryDisplay()
-  const target = displays.find((d) => d.id !== primary.id) ?? primary
+  const chosen = displayId !== undefined ? displays.find((d) => d.id === displayId) : undefined
+  const target = chosen ?? displays.find((d) => d.id !== primary.id) ?? primary
 
   const win = new BrowserWindow({
     x: target.bounds.x,
@@ -172,15 +194,23 @@ app.whenReady().then(() => {
     serverLink.pushSlideState(state)
   )
 
-  ipcMain.handle('program-out:toggle', () => {
-    if (programOutWindow) closeProgramOut()
-    else openProgramOut(mainWindow)
-  })
+  ipcMain.handle('program-out:list-displays', () => listDisplays())
+  ipcMain.handle('program-out:open', (_e, displayId?: number) =>
+    openProgramOut(mainWindow, displayId)
+  )
+  ipcMain.handle('program-out:close', () => closeProgramOut())
   ipcMain.handle('program-out:is-open', () => programOutWindow !== null)
   ipcMain.handle('program-out:push-state', (_e, state: ProgramOutState) => {
     latestProgramOutState = state
     programOutWindow?.webContents.send('program-out:state', state)
   })
+
+  screen.on('display-added', () =>
+    mainWindow.webContents.send('program-out:displays-changed', listDisplays())
+  )
+  screen.on('display-removed', () =>
+    mainWindow.webContents.send('program-out:displays-changed', listDisplays())
+  )
 
   app.on('activate', function () {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()

@@ -30,6 +30,26 @@
   gap: 8px;
 }
 
+.program-out-control {
+  display: flex;
+  gap: 6px;
+  -webkit-app-region: no-drag;
+}
+
+.program-out-display-select {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  color: var(--text-1);
+  padding: 0 8px;
+  border-radius: 3px;
+  font-size: 12px;
+  max-width: 220px;
+}
+
+.program-out-display-select:disabled {
+  opacity: 0.6;
+}
+
 .connection-panel {
   flex-shrink: 0;
   display: flex;

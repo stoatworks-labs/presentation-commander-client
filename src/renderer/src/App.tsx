@@ -7,6 +7,7 @@ import PdfViewer from './components/PdfViewer'
 import NotesPanel from './components/NotesPanel'
 import Transport from './components/Transport'
 import ConnectionPanel from './components/ConnectionPanel'
+import ProgramOutControl from './components/ProgramOutControl'
 
 function App(): React.JSX.Element {
   const [filePath, setFilePath] = useState<string | null>(null)
@@ -20,7 +21,6 @@ function App(): React.JSX.Element {
   const [host, setHost] = useState('localhost:9800')
   const [name, setName] = useState('')
   const [platform, setPlatform] = useState<'windows' | 'macos'>('macos')
-  const [programOutOpen, setProgramOutOpen] = useState(false)
 
   const totalPagesRef = useRef(0)
   useEffect(() => {
@@ -33,11 +33,6 @@ function App(): React.JSX.Element {
       setPlatform(info.platform)
     })
     return window.api.server.onStatus(setStatus)
-  }, [])
-
-  useEffect(() => {
-    window.api.programOut.isOpen().then(setProgramOutOpen)
-    return window.api.programOut.onOpenChanged(setProgramOutOpen)
   }, [])
 
   useEffect(() => {
@@ -97,13 +92,7 @@ function App(): React.JSX.Element {
       <div className="app-titlebar">
         <span>LiveMaster Client Node</span>
         <div className="titlebar-actions">
-          <button
-            className={`transport-btn ${programOutOpen ? 'active' : ''}`}
-            disabled={!pdfDoc}
-            onClick={() => window.api.programOut.toggle()}
-          >
-            {programOutOpen ? 'Close Program Out' : 'Program Out'}
-          </button>
+          <ProgramOutControl disabled={!pdfDoc} />
           <button className="transport-btn" onClick={openPdf}>
             {filePath ? 'Open Different PDF…' : 'Open PDF…'}
           </button>

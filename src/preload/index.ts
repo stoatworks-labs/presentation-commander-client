@@ -17,6 +17,15 @@ interface ProgramOutState {
   currentPage: number
 }
 
+interface DisplayInfo {
+  id: number
+  label: string
+  width: number
+  height: number
+  internal: boolean
+  primary: boolean
+}
+
 interface SystemInfo {
   hostname: string
   platform: 'windows' | 'macos'
@@ -61,7 +70,9 @@ const api = {
     }
   },
   programOut: {
-    toggle: (): Promise<void> => ipcRenderer.invoke('program-out:toggle'),
+    listDisplays: (): Promise<DisplayInfo[]> => ipcRenderer.invoke('program-out:list-displays'),
+    open: (displayId?: number): Promise<void> => ipcRenderer.invoke('program-out:open', displayId),
+    close: (): Promise<void> => ipcRenderer.invoke('program-out:close'),
     isOpen: (): Promise<boolean> => ipcRenderer.invoke('program-out:is-open'),
     pushState: (state: ProgramOutState): Promise<void> =>
       ipcRenderer.invoke('program-out:push-state', state),
@@ -70,6 +81,14 @@ const api = {
       ipcRenderer.on('program-out:open-changed', listener)
       return (): void => {
         ipcRenderer.removeListener('program-out:open-changed', listener)
+      }
+    },
+    onDisplaysChanged: (callback: (displays: DisplayInfo[]) => void) => {
+      const listener = (_e: Electron.IpcRendererEvent, displays: DisplayInfo[]): void =>
+        callback(displays)
+      ipcRenderer.on('program-out:displays-changed', listener)
+      return (): void => {
+        ipcRenderer.removeListener('program-out:displays-changed', listener)
       }
     },
     onState: (callback: (state: ProgramOutState) => void) => {
