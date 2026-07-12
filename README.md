@@ -1,34 +1,52 @@
-# livemaster-client-node
+# Presentation Commander — Client
 
-An Electron application with React and TypeScript
+The presentation laptop companion app for
+[presentation-commander-server](https://github.com/allansargeant/presentation-commander-server).
+A bespoke PDF presentation engine built as an Electron + React + TypeScript
+desktop app — no PowerPoint or Keynote dependency.
 
-## Recommended IDE Setup
+## What it does
 
-- [VSCode](https://code.visualstudio.com/) + [ESLint](https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint) + [Prettier](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode)
+- **Bespoke PDF engine** — open a PDF, get Now/Next slide previews rendered
+  locally with pdf.js
+- **Presenter notes** — per-slide notes, auto-saved to a `.notes.json`
+  sidecar file next to the PDF
+- **Transport** — Previous/Next buttons and arrow-key navigation
+- **Program Out** — a second, fullscreen, chrome-free window showing just
+  the current slide, for a projector or confidence monitor. Pick which
+  connected display it opens on from a dropdown next to the button
+- **Server link** — connects to the Master Server's client hub over
+  WebSocket (`ws://<host>:9800`), registers itself by name, pushes live
+  slide/notes state, and accepts remote next/previous-slide commands
+  triggered from the server's Control Surface
 
 ## Project Setup
 
 ### Install
 
 ```bash
-$ npm install
+npm install
 ```
 
 ### Development
 
 ```bash
-$ npm run dev
+npm run dev
 ```
 
 ### Build
 
 ```bash
-# For windows
-$ npm run build:win
+# Windows
+npm run build:win
 
-# For macOS
-$ npm run build:mac
+# macOS
+npm run build:mac
 
-# For Linux
-$ npm run build:linux
+# Linux
+npm run build:linux
 ```
+
+## Recommended IDE Setup
+
+- [VSCode](https://code.visualstudio.com/) + [ESLint](https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint) + [Prettier](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode)

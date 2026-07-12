@@ -1,5 +1,5 @@
-appId: com.electron.app
-productName: livemaster-client-node
+appId: com.presentationcommander.client
+productName: Presentation Commander Client
 directories:
   buildResources: build
 files:
@@ -12,7 +12,7 @@ files:
 asarUnpack:
   - resources/**
 win:
-  executableName: livemaster-client-node
+  executableName: presentation-commander-client
 nsis:
   artifactName: ${name}-${version}-setup.${ext}
   shortcutName: ${productName}

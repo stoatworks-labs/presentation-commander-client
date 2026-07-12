@@ -146,7 +146,7 @@ function openProgramOut(mainWindow: BrowserWindow, displayId?: number): void {
 }
 
 app.whenReady().then(() => {
-  electronApp.setAppUserModelId('com.livemaster.client-node')
+  electronApp.setAppUserModelId('com.presentationcommander.client')
 
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)

@@ -90,7 +90,7 @@ function App(): React.JSX.Element {
   return (
     <div className="app-shell">
       <div className="app-titlebar">
-        <span>LiveMaster Client Node</span>
+        <span>Presentation Commander — Client</span>
         <div className="titlebar-actions">
           <ProgramOutControl disabled={!pdfDoc} />
           <button className="transport-btn" onClick={openPdf}>
