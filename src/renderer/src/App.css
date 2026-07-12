@@ -25,6 +25,11 @@
   -webkit-app-region: no-drag;
 }
 
+.titlebar-actions {
+  display: flex;
+  gap: 8px;
+}
+
 .connection-panel {
   flex-shrink: 0;
   display: flex;
@@ -79,6 +84,32 @@
   background: transparent;
   color: var(--live);
   border-color: var(--live);
+}
+
+.transport-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #1a1006;
+}
+
+.program-out-shell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100vw;
+  height: 100vh;
+  background: #000;
+}
+
+.program-out-shell canvas {
+  max-width: 100%;
+  max-height: 100%;
+}
+
+.program-out-empty {
+  color: var(--text-3);
+  font-family: var(--font-mono);
+  font-size: 16px;
 }
 
 .empty-state {

@@ -1,4 +1,4 @@
-import { app, shell, BrowserWindow, ipcMain, dialog } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, dialog, screen } from 'electron'
 import { join } from 'path'
 import { readFile, writeFile } from 'fs/promises'
 import os from 'os'
@@ -7,8 +7,27 @@ import icon from '../../resources/icon.png?asset'
 import { serverLink } from './services/serverLink'
 import type { RegisterMessage, SlideStateMessage } from '../shared/protocol'
 
+interface ProgramOutState {
+  data: string
+  currentPage: number
+}
+
+let programOutWindow: BrowserWindow | null = null
+let latestProgramOutState: ProgramOutState | null = null
+
 function notesPathFor(pdfPath: string): string {
   return pdfPath.replace(/\.pdf$/i, '.notes.json')
+}
+
+function loadRenderer(win: BrowserWindow, mode?: string): void {
+  const search = mode ? `mode=${mode}` : undefined
+  if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
+    const url = new URL(process.env['ELECTRON_RENDERER_URL'])
+    if (mode) url.searchParams.set('mode', mode)
+    win.loadURL(url.toString())
+  } else {
+    win.loadFile(join(__dirname, '../renderer/index.html'), search ? { search } : undefined)
+  }
 }
 
 function createWindow(): BrowserWindow {
@@ -42,13 +61,66 @@ function createWindow(): BrowserWindow {
     return { action: 'deny' }
   })
 
-  if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
-    mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
-  } else {
-    mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
-  }
+  loadRenderer(mainWindow)
 
   return mainWindow
+}
+
+function closeProgramOut(): void {
+  programOutWindow?.close()
+}
+
+function openProgramOut(mainWindow: BrowserWindow): void {
+  if (programOutWindow) return
+
+  const displays = screen.getAllDisplays()
+  const primary = screen.getPrimaryDisplay()
+  const target = displays.find((d) => d.id !== primary.id) ?? primary
+
+  const win = new BrowserWindow({
+    x: target.bounds.x,
+    y: target.bounds.y,
+    width: target.bounds.width,
+    height: target.bounds.height,
+    show: false,
+    frame: false,
+    backgroundColor: '#000000',
+    autoHideMenuBar: true,
+    webPreferences: {
+      preload: join(__dirname, '../preload/index.js'),
+      sandbox: false
+    }
+  })
+
+  // Setting fullscreen at construction time can leave the window invisible
+  // to the OS window server on macOS; show it plain first, then transition.
+  win.once('ready-to-show', () => {
+    win.show()
+    win.setFullScreen(true)
+  })
+
+  win.webContents.on('before-input-event', (_event, input) => {
+    if (input.key === 'Escape') closeProgramOut()
+  })
+
+  if (is.dev) {
+    win.webContents.on('console-message', (event) => {
+      console.log(`[program-out:${event.level}] ${event.message}`)
+    })
+  }
+
+  win.on('closed', () => {
+    programOutWindow = null
+    mainWindow.webContents.send('program-out:open-changed', false)
+  })
+
+  win.webContents.once('did-finish-load', () => {
+    if (latestProgramOutState) win.webContents.send('program-out:state', latestProgramOutState)
+  })
+
+  loadRenderer(win, 'program-out')
+  programOutWindow = win
+  mainWindow.webContents.send('program-out:open-changed', true)
 }
 
 app.whenReady().then(() => {
@@ -99,6 +171,16 @@ app.whenReady().then(() => {
   ipcMain.handle('server:push-slide-state', (_e, state: Omit<SlideStateMessage, 'type'>) =>
     serverLink.pushSlideState(state)
   )
+
+  ipcMain.handle('program-out:toggle', () => {
+    if (programOutWindow) closeProgramOut()
+    else openProgramOut(mainWindow)
+  })
+  ipcMain.handle('program-out:is-open', () => programOutWindow !== null)
+  ipcMain.handle('program-out:push-state', (_e, state: ProgramOutState) => {
+    latestProgramOutState = state
+    programOutWindow?.webContents.send('program-out:state', state)
+  })
 
   app.on('activate', function () {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()

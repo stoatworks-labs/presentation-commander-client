@@ -10,6 +10,7 @@ import ConnectionPanel from './components/ConnectionPanel'
 
 function App(): React.JSX.Element {
   const [filePath, setFilePath] = useState<string | null>(null)
+  const [pdfData, setPdfData] = useState<string | null>(null)
   const [pdfDoc, setPdfDoc] = useState<PDFDocumentProxy | null>(null)
   const [totalPages, setTotalPages] = useState(0)
   const [currentPage, setCurrentPage] = useState(1)
@@ -19,6 +20,7 @@ function App(): React.JSX.Element {
   const [host, setHost] = useState('localhost:9800')
   const [name, setName] = useState('')
   const [platform, setPlatform] = useState<'windows' | 'macos'>('macos')
+  const [programOutOpen, setProgramOutOpen] = useState(false)
 
   const totalPagesRef = useRef(0)
   useEffect(() => {
@@ -32,6 +34,16 @@ function App(): React.JSX.Element {
     })
     return window.api.server.onStatus(setStatus)
   }, [])
+
+  useEffect(() => {
+    window.api.programOut.isOpen().then(setProgramOutOpen)
+    return window.api.programOut.onOpenChanged(setProgramOutOpen)
+  }, [])
+
+  useEffect(() => {
+    if (!pdfData || !currentPage) return
+    window.api.programOut.pushState({ data: pdfData, currentPage })
+  }, [pdfData, currentPage])
 
   useEffect(() => {
     return window.api.server.onCommand((command) => {
@@ -67,6 +79,7 @@ function App(): React.JSX.Element {
     const doc = await loadPdf(result.data)
     const notes = await window.api.notes.load(result.filePath)
     setFilePath(result.filePath)
+    setPdfData(result.data)
     setPdfDoc(doc)
     setTotalPages(doc.numPages)
     setCurrentPage(1)
@@ -83,9 +96,18 @@ function App(): React.JSX.Element {
     <div className="app-shell">
       <div className="app-titlebar">
         <span>LiveMaster Client Node</span>
-        <button className="transport-btn" onClick={openPdf}>
-          {filePath ? 'Open Different PDF…' : 'Open PDF…'}
-        </button>
+        <div className="titlebar-actions">
+          <button
+            className={`transport-btn ${programOutOpen ? 'active' : ''}`}
+            disabled={!pdfDoc}
+            onClick={() => window.api.programOut.toggle()}
+          >
+            {programOutOpen ? 'Close Program Out' : 'Program Out'}
+          </button>
+          <button className="transport-btn" onClick={openPdf}>
+            {filePath ? 'Open Different PDF…' : 'Open PDF…'}
+          </button>
+        </div>
       </div>
 
       <ConnectionPanel

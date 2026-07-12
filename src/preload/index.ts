@@ -12,6 +12,11 @@ interface OpenPdfResult {
   data: string
 }
 
+interface ProgramOutState {
+  data: string
+  currentPage: number
+}
+
 interface SystemInfo {
   hostname: string
   platform: 'windows' | 'macos'
@@ -52,6 +57,27 @@ const api = {
       ipcRenderer.on('server:command', listener)
       return (): void => {
         ipcRenderer.removeListener('server:command', listener)
+      }
+    }
+  },
+  programOut: {
+    toggle: (): Promise<void> => ipcRenderer.invoke('program-out:toggle'),
+    isOpen: (): Promise<boolean> => ipcRenderer.invoke('program-out:is-open'),
+    pushState: (state: ProgramOutState): Promise<void> =>
+      ipcRenderer.invoke('program-out:push-state', state),
+    onOpenChanged: (callback: (open: boolean) => void) => {
+      const listener = (_e: Electron.IpcRendererEvent, open: boolean): void => callback(open)
+      ipcRenderer.on('program-out:open-changed', listener)
+      return (): void => {
+        ipcRenderer.removeListener('program-out:open-changed', listener)
+      }
+    },
+    onState: (callback: (state: ProgramOutState) => void) => {
+      const listener = (_e: Electron.IpcRendererEvent, state: ProgramOutState): void =>
+        callback(state)
+      ipcRenderer.on('program-out:state', listener)
+      return (): void => {
+        ipcRenderer.removeListener('program-out:state', listener)
       }
     }
   }
