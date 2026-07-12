@@ -31,6 +31,12 @@ function createWindow(): BrowserWindow {
     mainWindow.show()
   })
 
+  if (is.dev) {
+    mainWindow.webContents.on('console-message', (event) => {
+      console.log(`[renderer:${event.level}] ${event.message}`)
+    })
+  }
+
   mainWindow.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url)
     return { action: 'deny' }
