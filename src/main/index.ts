@@ -5,6 +5,7 @@ import os from 'os'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { serverLink } from './services/serverLink'
+import { ndiSenderService } from './services/ndiSender'
 import type { RegisterMessage, SlideStateMessage } from '../shared/protocol'
 
 interface ProgramOutState {
@@ -212,6 +213,23 @@ app.whenReady().then(() => {
     mainWindow.webContents.send('program-out:displays-changed', listDisplays())
   )
 
+  ipcMain.handle('ndi:toggle', (_e, name: string) => {
+    if (ndiSenderService.isActive()) {
+      ndiSenderService.stop()
+    } else {
+      ndiSenderService.start(name)
+    }
+    return ndiSenderService.isActive()
+  })
+  ipcMain.handle('ndi:is-active', () => ndiSenderService.isActive())
+  ipcMain.handle('ndi:push-frame', (_e, data: Uint8Array, width: number, height: number) => {
+    ndiSenderService.sendFrame(
+      Buffer.from(data.buffer, data.byteOffset, data.byteLength),
+      width,
+      height
+    )
+  })
+
   app.on('activate', function () {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
@@ -219,6 +237,7 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
   serverLink.disconnect()
+  ndiSenderService.stop()
   if (process.platform !== 'darwin') {
     app.quit()
   }

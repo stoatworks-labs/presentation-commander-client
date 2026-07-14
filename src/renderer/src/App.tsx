@@ -2,12 +2,13 @@ import { useEffect, useRef, useState } from 'react'
 import type { PDFDocumentProxy } from 'pdfjs-dist'
 import type { ConnectionStatus } from '../../shared/protocol'
 import './App.css'
-import { loadPdf } from './pdf'
+import { loadPdf, renderPageContain } from './pdf'
 import PdfViewer from './components/PdfViewer'
 import NotesPanel from './components/NotesPanel'
 import Transport from './components/Transport'
 import ConnectionPanel from './components/ConnectionPanel'
 import ProgramOutControl from './components/ProgramOutControl'
+import NdiOutputControl from './components/NdiOutputControl'
 
 function App(): React.JSX.Element {
   const [filePath, setFilePath] = useState<string | null>(null)
@@ -21,6 +22,8 @@ function App(): React.JSX.Element {
   const [host, setHost] = useState('localhost:9800')
   const [name, setName] = useState('')
   const [platform, setPlatform] = useState<'windows' | 'macos'>('macos')
+  const [ndiActive, setNdiActive] = useState(false)
+  const ndiCanvasRef = useRef<HTMLCanvasElement>(document.createElement('canvas'))
 
   const totalPagesRef = useRef(0)
   useEffect(() => {
@@ -39,6 +42,27 @@ function App(): React.JSX.Element {
     if (!pdfData || !currentPage) return
     window.api.programOut.pushState({ data: pdfData, currentPage })
   }, [pdfData, currentPage])
+
+  useEffect(() => {
+    window.api.ndiOutput.isActive().then(setNdiActive)
+  }, [])
+
+  useEffect(() => {
+    if (!ndiActive || !pdfDoc || !currentPage) return
+    const canvas = ndiCanvasRef.current
+    renderPageContain(pdfDoc, currentPage, canvas, 1920, 1080)
+      .then(() => {
+        const ctx = canvas.getContext('2d')
+        if (!ctx) return
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+        window.api.ndiOutput.pushFrame(
+          new Uint8Array(imageData.data.buffer),
+          canvas.width,
+          canvas.height
+        )
+      })
+      .catch((err) => console.error('Failed to render frame for NDI output', err))
+  }, [ndiActive, pdfDoc, currentPage])
 
   useEffect(() => {
     return window.api.server.onCommand((command) => {
@@ -81,6 +105,17 @@ function App(): React.JSX.Element {
     setNotesBySlide(notes)
   }
 
+  const toggleNdi = async (): Promise<void> => {
+    try {
+      const nowActive = await window.api.ndiOutput.toggle(
+        `${name || 'Presentation Commander'} (Program Out)`
+      )
+      setNdiActive(nowActive)
+    } catch (err) {
+      console.error('Failed to toggle NDI output', err)
+    }
+  }
+
   const changeNotes = (text: string): void => {
     const next = { ...notesBySlide, [currentPage]: text }
     setNotesBySlide(next)
@@ -92,6 +127,7 @@ function App(): React.JSX.Element {
       <div className="app-titlebar">
         <span>Presentation Commander — Client</span>
         <div className="titlebar-actions">
+          <NdiOutputControl disabled={!pdfDoc} active={ndiActive} onToggle={toggleNdi} />
           <ProgramOutControl disabled={!pdfDoc} />
           <button className="transport-btn" onClick={openPdf}>
             {filePath ? 'Open Different PDF…' : 'Open PDF…'}
