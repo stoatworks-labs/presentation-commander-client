@@ -23,8 +23,8 @@ desktop app — no PowerPoint or Keynote dependency.
   the current slide, for a projector or confidence monitor. Pick which
   connected display it opens on from a dropdown next to the button
 - **NDI Output** — broadcasts the current slide as a real NDI video source
-  on the network (discoverable by vMix, OBS, ATEM, NDI Monitor, etc.),
-  built directly against the official
+  on the network, discoverable by any NDI-compatible receiver, built
+  directly against the official
   [Vizrt NDI SDK](https://ndi.video/for-developers/ndi-sdk/) via a small
   native N-API addon (`native/ndi-send`) — no third-party NDI wrapper.
   Independent of whether the Program Out window is open, since NDI is a
