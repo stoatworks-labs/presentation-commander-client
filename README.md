@@ -10,6 +10,8 @@ The presentation laptop companion app for
 A bespoke PDF presentation engine built as an Electron + React + TypeScript
 desktop app — no PowerPoint or Keynote dependency.
 
+![Presentation Commander Client main window: connection panel, Program Out display picker, and Open PDF control](docs/screenshot.png)
+
 ## What it does
 
 - **Bespoke PDF engine** — open a PDF, get Now/Next slide previews rendered
