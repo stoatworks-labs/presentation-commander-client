@@ -42,6 +42,15 @@ default: `/Library/NDI SDK for Apple`; override the location with
 `NDI_SDK_DIR` if yours lives elsewhere). `npm install` rebuilds the addon
 automatically via `@electron/rebuild`.
 
+### Google Slides bridge (optional)
+
+`extension/` is an unpacked Chrome extension that lets the Client connect
+to a live Google Slides Presenter View instead of a local PDF/Keynote
+file — load it via `chrome://extensions` → Developer mode → Load
+unpacked. Fetching speaker notes needs a one-time OAuth client
+registration in Google Cloud Console; see
+[`extension/OAUTH_SETUP.md`](extension/OAUTH_SETUP.md).
+
 ## Project Setup
 
 ### Install
