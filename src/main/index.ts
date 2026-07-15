@@ -7,6 +7,7 @@ import icon from '../../resources/icon.png?asset'
 import { serverLink } from './services/serverLink'
 import { ndiSenderService } from './services/ndiSender'
 import { keynoteBridge } from './services/keynoteBridge'
+import { powerpointBridge } from './services/powerpointBridge'
 import { browserBridge } from './services/browserBridge'
 import { getOAuthStatus, setOAuthClientId } from './services/googleSlidesSetup'
 import type { RegisterMessage, SlideStateMessage } from '../shared/protocol'
@@ -159,6 +160,9 @@ app.whenReady().then(() => {
   keynoteBridge.on('current-slide-changed', (page: number) =>
     mainWindow.webContents.send('keynote:current-slide-changed', page)
   )
+  powerpointBridge.on('current-slide-changed', (page: number) =>
+    mainWindow.webContents.send('powerpoint:current-slide-changed', page)
+  )
   browserBridge.on('slide-update', (update) =>
     mainWindow.webContents.send('browser-bridge:slide-update', update)
   )
@@ -192,6 +196,19 @@ app.whenReady().then(() => {
   })
   ipcMain.handle('keynote:goto', (_e, page: number) => keynoteBridge.goTo(page))
   ipcMain.handle('keynote:close', () => keynoteBridge.close())
+
+  ipcMain.handle('powerpoint:open', async () => {
+    const result = await dialog.showOpenDialog(mainWindow, {
+      properties: ['openFile'],
+      filters: [{ name: 'PowerPoint', extensions: ['pptx', 'ppt'] }]
+    })
+    if (result.canceled || result.filePaths.length === 0) return null
+    const filePath = result.filePaths[0]
+    const opened = await powerpointBridge.open(filePath)
+    return { filePath, ...opened }
+  })
+  ipcMain.handle('powerpoint:goto', (_e, page: number) => powerpointBridge.goTo(page))
+  ipcMain.handle('powerpoint:close', () => powerpointBridge.close())
 
   ipcMain.handle('browser-bridge:navigate', (_e, direction: 'next' | 'previous') =>
     browserBridge.navigate(direction)

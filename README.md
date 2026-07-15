@@ -21,6 +21,22 @@ desktop app — no PowerPoint or Keynote dependency.
   count and presenter notes are pulled on open, navigating in our UI
   advances the real Keynote window, and advancing Keynote itself (clicker,
   arrow keys) is polled and reflected back within ~400ms
+- **PowerPoint integration** (macOS and Windows) — same idea as Keynote,
+  platform-appropriate mechanism: AppleScript on macOS, PowerShell COM
+  automation (`New-Object -ComObject PowerPoint.Application`) on Windows,
+  behind the same `SlideSource` interface either way. Slide count and
+  presenter notes are pulled on open; navigating in our UI drives the real
+  PowerPoint editing view. On macOS, PowerPoint's AppleScript dictionary has
+  no working bulk slide-image export (`save … as PNG/PDF` is declared but is
+  a silent no-op in the tested version), so frames are captured one slide at
+  a time via `copy object` + reading the resulting image off the system
+  clipboard. On Windows, `Slide.Export(path, "PNG", w, h)` genuinely works,
+  so export is a plain bulk loop — no clipboard round-trip needed. Neither
+  platform drives PowerPoint's own fullscreen slideshow mode (confirmed
+  unreliable under automation/virtualization on both — same class of issue
+  as Keynote's `start`/`show`); the editing view's current slide is enough
+  for everything this app needs, since Program Out/NDI is what the audience
+  actually sees
 - **Presenter notes** — per-slide notes, auto-saved to a `.notes.json`
   sidecar file next to the PDF
 - **Transport** — Previous/Next buttons and arrow-key navigation
@@ -47,7 +63,7 @@ desktop app — no PowerPoint or Keynote dependency.
 ```mermaid
 graph LR
     subgraph laptop["Presentation Laptop (Client Node — this app)"]
-        SS["SlideSource<br/>PDF · Keynote · Google Slides"]
+        SS["SlideSource<br/>PDF · Keynote · PowerPoint · Google Slides"]
         NDIsend["NDI Send<br/>native/ndi-send"]
         ProgOut["Program Out window"]
         SL["serverLink.ts"]
@@ -103,11 +119,12 @@ manifest changes on reload). The full walkthrough is also written out at
 
 ## Status
 
-Feature-complete for its current scope: the bespoke PDF engine, Keynote (macOS)
-and Google Slides sources, dual NDI outputs (Program + Next Slide), presenter
-notes, Program Out window, and the Master Server link / Control Surface
-integration are all built and verified. Keynote drive is macOS-only — other
-platforms use the PDF and Google Slides paths.
+Feature-complete for its current scope: the bespoke PDF engine, Keynote
+(macOS), PowerPoint (macOS and Windows), and Google Slides sources, dual NDI
+outputs (Program + Next Slide), presenter notes, Program Out window, and the
+Master Server link / Control Surface integration are all built and verified.
+Keynote drive is macOS-only (no Windows equivalent exists); PDF and Google
+Slides work on both platforms.
 
 ## Project Setup
 

@@ -5,6 +5,7 @@ import './App.css'
 import { loadPdf } from './pdf'
 import { createPdfSource } from './sources/pdfSource'
 import { createKeynoteSource } from './sources/keynoteSource'
+import { createPowerPointSource } from './sources/powerpointSource'
 import { createGoogleSlidesSource } from './sources/googleSlidesSource'
 import SlideViewer from './components/SlideViewer'
 import NotesPanel from './components/NotesPanel'
@@ -188,6 +189,24 @@ function App(): React.JSX.Element {
     setNotesBySlide(result.notesBySlide)
   }
 
+  const openPowerPoint = async (): Promise<void> => {
+    const result = await window.api.powerpoint.open()
+    if (!result) return
+    activeSource?.dispose()
+    setFilePath(result.filePath)
+    setActiveSource(
+      createPowerPointSource({
+        frameFiles: result.frameFiles,
+        goTo: window.api.powerpoint.goTo,
+        onCurrentSlideChanged: window.api.powerpoint.onCurrentSlideChanged,
+        close: window.api.powerpoint.close
+      })
+    )
+    setTotalPages(result.totalPages)
+    setCurrentPage(1)
+    setNotesBySlide(result.notesBySlide)
+  }
+
   const connectGoogleSlides = (): void => {
     activeSource?.dispose()
     setFilePath(null)
@@ -251,6 +270,9 @@ function App(): React.JSX.Element {
           </button>
           <button className="transport-btn" onClick={openKeynote}>
             Open Keynote…
+          </button>
+          <button className="transport-btn" onClick={openPowerPoint}>
+            Open PowerPoint…
           </button>
           <button className="transport-btn" onClick={connectGoogleSlides}>
             Connect Google Slides…

@@ -20,6 +20,13 @@ interface OpenKeynoteResult {
   frameFiles: string[]
 }
 
+interface OpenPowerPointResult {
+  filePath: string
+  totalPages: number
+  notesBySlide: Record<number, string>
+  frameFiles: string[]
+}
+
 interface DisplayInfo {
   id: number
   label: string
@@ -65,6 +72,18 @@ const api = {
       ipcRenderer.on('keynote:current-slide-changed', listener)
       return (): void => {
         ipcRenderer.removeListener('keynote:current-slide-changed', listener)
+      }
+    }
+  },
+  powerpoint: {
+    open: (): Promise<OpenPowerPointResult | null> => ipcRenderer.invoke('powerpoint:open'),
+    goTo: (page: number): Promise<void> => ipcRenderer.invoke('powerpoint:goto', page),
+    close: (): Promise<void> => ipcRenderer.invoke('powerpoint:close'),
+    onCurrentSlideChanged: (callback: (page: number) => void) => {
+      const listener = (_e: Electron.IpcRendererEvent, page: number): void => callback(page)
+      ipcRenderer.on('powerpoint:current-slide-changed', listener)
+      return (): void => {
+        ipcRenderer.removeListener('powerpoint:current-slide-changed', listener)
       }
     }
   },

@@ -12,7 +12,7 @@ import type { ProgramOutState } from '../../../shared/programOut'
  * through this interface.
  */
 export interface SlideSource {
-  readonly kind: 'pdf' | 'keynote' | 'google-slides'
+  readonly kind: 'pdf' | 'keynote' | 'powerpoint' | 'google-slides'
 
   /** Draws `page` onto `canvas`, scaled to fit within maxWidth x maxHeight. */
   renderFrame(
