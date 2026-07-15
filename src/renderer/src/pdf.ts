@@ -32,6 +32,11 @@ async function renderAtScale(
   canvas.height = viewport.height
   const context = canvas.getContext('2d')
   if (!context) return
+  // Chromium's canvas.width/height setters are documented to implicitly reset the 2D
+  // context transform, but some versions skip that reset when the new size numerically
+  // matches the current size — leaving pdf.js's previous transform in place and
+  // compounding with the next render's PDF-to-canvas flip into a 180° rotation.
+  context.resetTransform()
 
   const task = page.render({ canvasContext: context, viewport })
   activeRenders.set(canvas, task)
