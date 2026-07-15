@@ -6,62 +6,83 @@ interface Frame {
   height: number
 }
 
+interface StreamState {
+  sender: NdiSender
+  pending: Frame | null
+  lastSent: Frame | null
+  sending: boolean
+  keepAliveTimer: NodeJS.Timeout
+}
+
 /**
- * Thin coalescing wrapper around the native sender: only one NDIlib send
- * call is ever in flight at a time (queuing further calls from the same
- * JS process risks two threadpool workers touching the same sender
- * instance concurrently), and a 1s keep-alive resends the last frame so
- * a static slide doesn't go stale for receivers that expect a steady feed.
+ * Thin coalescing wrapper around the native sender, keyed by streamId so
+ * independent NDI outputs (e.g. Program Out and a separate Next Slide
+ * Preview) can run concurrently — the native addon supports multiple
+ * NDIlib senders in one process, so the only shared state here is this
+ * map. Per stream, only one NDIlib send call is ever in flight at a time
+ * (queuing further calls from the same JS process risks two threadpool
+ * workers touching the same sender instance concurrently), and a 1s
+ * keep-alive resends the last frame so a static slide doesn't go stale
+ * for receivers that expect a steady feed.
  */
 class NdiSenderService {
-  private sender: NdiSender | null = null
-  private pending: Frame | null = null
-  private lastSent: Frame | null = null
-  private sending = false
-  private keepAliveTimer: NodeJS.Timeout | null = null
+  private streams = new Map<string, StreamState>()
 
-  start(name: string): void {
-    if (this.sender) return
-    this.sender = new NdiSender(name)
-    this.keepAliveTimer = setInterval(() => {
-      if (this.lastSent) this.queue(this.lastSent)
-    }, 1000)
+  start(streamId: string, name: string): void {
+    if (this.streams.has(streamId)) return
+    const sender = new NdiSender(name)
+    const state: StreamState = {
+      sender,
+      pending: null,
+      lastSent: null,
+      sending: false,
+      keepAliveTimer: setInterval(() => {
+        if (state.lastSent) this.queue(streamId, state.lastSent)
+      }, 1000)
+    }
+    this.streams.set(streamId, state)
   }
 
-  isActive(): boolean {
-    return this.sender !== null
+  isActive(streamId: string): boolean {
+    return this.streams.has(streamId)
   }
 
-  sendFrame(buffer: Buffer, width: number, height: number): void {
-    this.queue({ buffer, width, height })
+  sendFrame(streamId: string, buffer: Buffer, width: number, height: number): void {
+    this.queue(streamId, { buffer, width, height })
   }
 
-  stop(): void {
-    if (this.keepAliveTimer) clearInterval(this.keepAliveTimer)
-    this.keepAliveTimer = null
-    this.sender?.destroy()
-    this.sender = null
-    this.pending = null
-    this.lastSent = null
+  stop(streamId: string): void {
+    const state = this.streams.get(streamId)
+    if (!state) return
+    clearInterval(state.keepAliveTimer)
+    state.sender.destroy()
+    this.streams.delete(streamId)
   }
 
-  private queue(frame: Frame): void {
-    this.pending = frame
-    this.lastSent = frame
-    this.drain()
+  stopAll(): void {
+    for (const streamId of [...this.streams.keys()]) this.stop(streamId)
   }
 
-  private drain(): void {
-    if (this.sending || !this.pending || !this.sender) return
-    const frame = this.pending
-    this.pending = null
-    this.sending = true
-    this.sender
+  private queue(streamId: string, frame: Frame): void {
+    const state = this.streams.get(streamId)
+    if (!state) return
+    state.pending = frame
+    state.lastSent = frame
+    this.drain(streamId)
+  }
+
+  private drain(streamId: string): void {
+    const state = this.streams.get(streamId)
+    if (!state || state.sending || !state.pending) return
+    const frame = state.pending
+    state.pending = null
+    state.sending = true
+    state.sender
       .sendFrame(frame.buffer, frame.width, frame.height)
-      .catch((err) => console.error('[ndi-sender] sendFrame failed:', err))
+      .catch((err) => console.error(`[ndi-sender:${streamId}] sendFrame failed:`, err))
       .finally(() => {
-        this.sending = false
-        this.drain()
+        state.sending = false
+        this.drain(streamId)
       })
   }
 }

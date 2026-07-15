@@ -20,10 +20,10 @@ Keep that — it's what you'll register the OAuth client against below.
 1. **Open Google Cloud Console** — https://console.cloud.google.com/
 2. **Create a project** (top-left project picker → New Project). Name it
    whatever you like, e.g. "Presentation Commander".
-3. **Enable the Slides API** — left sidebar → *APIs & Services* →
-   *Library* → search "Google Slides API" → **Enable**.
-4. **Configure the OAuth consent screen** — *APIs & Services* →
-   *OAuth consent screen*:
+3. **Enable the Slides API** — left sidebar → _APIs & Services_ →
+   _Library_ → search "Google Slides API" → **Enable**.
+4. **Configure the OAuth consent screen** — _APIs & Services_ →
+   _OAuth consent screen_:
    - User type: **External** (unless this is a Google Workspace account,
      in which case **Internal** is simpler and skips the next point)
    - App name: "Presentation Commander" (or anything)
@@ -32,7 +32,7 @@ Keep that — it's what you'll register the OAuth client against below.
    - Test users: add your own Google account email. While the app stays
      in "Testing" status (the default, no Google review needed), only
      accounts listed here can authorize it.
-5. **Create the OAuth client** — *APIs & Services* → *Credentials* →
+5. **Create the OAuth client** — _APIs & Services_ → _Credentials_ →
    **Create Credentials** → **OAuth client ID**:
    - Application type: **Chrome Extension**
    - Application ID: `kibkdbmpbeoapaagoiffjlmgnhambklk` (the fixed ID

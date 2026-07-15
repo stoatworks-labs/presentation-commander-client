@@ -2,16 +2,24 @@ interface Props {
   disabled: boolean
   active: boolean
   onToggle: () => void
+  label?: string
+  activeLabel?: string
 }
 
-function NdiOutputControl({ disabled, active, onToggle }: Props): React.JSX.Element {
+function NdiOutputControl({
+  disabled,
+  active,
+  onToggle,
+  label = 'NDI Output',
+  activeLabel = 'Stop NDI Output'
+}: Props): React.JSX.Element {
   return (
     <button
       className={`transport-btn ${active ? 'active' : ''}`}
       disabled={disabled}
       onClick={onToggle}
     >
-      {active ? 'Stop NDI Output' : 'NDI Output'}
+      {active ? activeLabel : label}
     </button>
   )
 }

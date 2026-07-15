@@ -13,6 +13,9 @@ import ConnectionPanel from './components/ConnectionPanel'
 import ProgramOutControl from './components/ProgramOutControl'
 import NdiOutputControl from './components/NdiOutputControl'
 
+const NDI_STREAM_PROGRAM = 'program'
+const NDI_STREAM_NEXT = 'next'
+
 function App(): React.JSX.Element {
   const [filePath, setFilePath] = useState<string | null>(null)
   const [activeSource, setActiveSource] = useState<SlideSource | null>(null)
@@ -26,6 +29,8 @@ function App(): React.JSX.Element {
   const [platform, setPlatform] = useState<'windows' | 'macos'>('macos')
   const [ndiActive, setNdiActive] = useState(false)
   const ndiCanvasRef = useRef<HTMLCanvasElement>(document.createElement('canvas'))
+  const [nextNdiActive, setNextNdiActive] = useState(false)
+  const nextNdiCanvasRef = useRef<HTMLCanvasElement>(document.createElement('canvas'))
 
   const totalPagesRef = useRef(0)
   useEffect(() => {
@@ -46,7 +51,8 @@ function App(): React.JSX.Element {
   }, [activeSource, currentPage])
 
   useEffect(() => {
-    window.api.ndiOutput.isActive().then(setNdiActive)
+    window.api.ndiOutput.isActive(NDI_STREAM_PROGRAM).then(setNdiActive)
+    window.api.ndiOutput.isActive(NDI_STREAM_NEXT).then(setNextNdiActive)
   }, [])
 
   useEffect(() => {
@@ -59,6 +65,7 @@ function App(): React.JSX.Element {
         if (!ctx) return
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
         window.api.ndiOutput.pushFrame(
+          NDI_STREAM_PROGRAM,
           new Uint8Array(imageData.data.buffer),
           canvas.width,
           canvas.height
@@ -66,6 +73,32 @@ function App(): React.JSX.Element {
       })
       .catch((err) => console.error('Failed to render frame for NDI output', err))
   }, [ndiActive, activeSource, currentPage])
+
+  // Mirrors the Program Out NDI push above, but for the upcoming slide —
+  // same source, same render path SlideViewer already uses for its "Next"
+  // preview, just pushed out as its own independent named NDI stream so a
+  // separate receiver (e.g. a stage monitor showing what's coming next)
+  // can pick it up without needing the composited Confidence Monitor path.
+  useEffect(() => {
+    if (!nextNdiActive || !activeSource || !totalPages) return
+    const nextPage = currentPage < totalPages ? currentPage + 1 : null
+    if (!nextPage) return
+    const canvas = nextNdiCanvasRef.current
+    activeSource
+      .renderFrame(nextPage, canvas, 1920, 1080)
+      .then(() => {
+        const ctx = canvas.getContext('2d')
+        if (!ctx) return
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+        window.api.ndiOutput.pushFrame(
+          NDI_STREAM_NEXT,
+          new Uint8Array(imageData.data.buffer),
+          canvas.width,
+          canvas.height
+        )
+      })
+      .catch((err) => console.error('Failed to render frame for Next Slide NDI output', err))
+  }, [nextNdiActive, activeSource, currentPage, totalPages])
 
   // Keeps the underlying app (Keynote, etc.) in sync whenever currentPage
   // changes, however it changed — Transport, keyboard, or a remote command.
@@ -170,11 +203,24 @@ function App(): React.JSX.Element {
   const toggleNdi = async (): Promise<void> => {
     try {
       const nowActive = await window.api.ndiOutput.toggle(
+        NDI_STREAM_PROGRAM,
         `${name || 'Presentation Commander'} (Program Out)`
       )
       setNdiActive(nowActive)
     } catch (err) {
       console.error('Failed to toggle NDI output', err)
+    }
+  }
+
+  const toggleNextNdi = async (): Promise<void> => {
+    try {
+      const nowActive = await window.api.ndiOutput.toggle(
+        NDI_STREAM_NEXT,
+        `${name || 'Presentation Commander'} (Next Slide Preview)`
+      )
+      setNextNdiActive(nowActive)
+    } catch (err) {
+      console.error('Failed to toggle Next Slide NDI output', err)
     }
   }
 
@@ -190,6 +236,13 @@ function App(): React.JSX.Element {
         <span>Presentation Commander — Client</span>
         <div className="titlebar-actions">
           <NdiOutputControl disabled={!activeSource} active={ndiActive} onToggle={toggleNdi} />
+          <NdiOutputControl
+            disabled={!activeSource}
+            active={nextNdiActive}
+            onToggle={toggleNextNdi}
+            label="Next Slide NDI"
+            activeLabel="Stop Next Slide NDI"
+          />
           <ProgramOutControl disabled={!activeSource} />
           <button className="transport-btn" onClick={openPdf}>
             {filePath ? 'Open Different PDF…' : 'Open PDF…'}

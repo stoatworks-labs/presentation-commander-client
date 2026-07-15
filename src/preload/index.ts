@@ -137,10 +137,11 @@ const api = {
     }
   },
   ndiOutput: {
-    toggle: (name: string): Promise<boolean> => ipcRenderer.invoke('ndi:toggle', name),
-    isActive: (): Promise<boolean> => ipcRenderer.invoke('ndi:is-active'),
-    pushFrame: (data: Uint8Array, width: number, height: number): Promise<void> =>
-      ipcRenderer.invoke('ndi:push-frame', data, width, height)
+    toggle: (streamId: string, name: string): Promise<boolean> =>
+      ipcRenderer.invoke('ndi:toggle', streamId, name),
+    isActive: (streamId: string): Promise<boolean> => ipcRenderer.invoke('ndi:is-active', streamId),
+    pushFrame: (streamId: string, data: Uint8Array, width: number, height: number): Promise<void> =>
+      ipcRenderer.invoke('ndi:push-frame', streamId, data, width, height)
   }
 }
 

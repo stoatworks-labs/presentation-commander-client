@@ -11,7 +11,10 @@ let socket = null
 let reconnectTimer = null
 
 function connect() {
-  if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) {
+  if (
+    socket &&
+    (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)
+  ) {
     return
   }
   socket = new WebSocket(BRIDGE_URL)

@@ -235,22 +235,26 @@ app.whenReady().then(() => {
     mainWindow.webContents.send('program-out:displays-changed', listDisplays())
   )
 
-  ipcMain.handle('ndi:toggle', (_e, name: string) => {
-    if (ndiSenderService.isActive()) {
-      ndiSenderService.stop()
+  ipcMain.handle('ndi:toggle', (_e, streamId: string, name: string) => {
+    if (ndiSenderService.isActive(streamId)) {
+      ndiSenderService.stop(streamId)
     } else {
-      ndiSenderService.start(name)
+      ndiSenderService.start(streamId, name)
     }
-    return ndiSenderService.isActive()
+    return ndiSenderService.isActive(streamId)
   })
-  ipcMain.handle('ndi:is-active', () => ndiSenderService.isActive())
-  ipcMain.handle('ndi:push-frame', (_e, data: Uint8Array, width: number, height: number) => {
-    ndiSenderService.sendFrame(
-      Buffer.from(data.buffer, data.byteOffset, data.byteLength),
-      width,
-      height
-    )
-  })
+  ipcMain.handle('ndi:is-active', (_e, streamId: string) => ndiSenderService.isActive(streamId))
+  ipcMain.handle(
+    'ndi:push-frame',
+    (_e, streamId: string, data: Uint8Array, width: number, height: number) => {
+      ndiSenderService.sendFrame(
+        streamId,
+        Buffer.from(data.buffer, data.byteOffset, data.byteLength),
+        width,
+        height
+      )
+    }
+  )
 
   app.on('activate', function () {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
@@ -259,7 +263,7 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
   serverLink.disconnect()
-  ndiSenderService.stop()
+  ndiSenderService.stopAll()
   if (process.platform !== 'darwin') {
     app.quit()
   }
