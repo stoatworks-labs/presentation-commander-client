@@ -1,19 +1,18 @@
 import { useEffect, useRef } from 'react'
-import type { PDFDocumentProxy } from 'pdfjs-dist'
-import { renderPageToCanvas } from '../pdf'
+import type { SlideSource } from '../sources/types'
 
 interface Props {
-  doc: PDFDocumentProxy | null
+  source: SlideSource | null
   currentPage: number
   totalPages: number
 }
 
 function SlideCanvas({
-  doc,
+  source,
   pageNumber,
   label
 }: {
-  doc: PDFDocumentProxy | null
+  source: SlideSource | null
   pageNumber: number | null
   label: string
 }): React.JSX.Element {
@@ -23,12 +22,13 @@ function SlideCanvas({
   useEffect(() => {
     const canvas = canvasRef.current
     const container = containerRef.current
-    if (!doc || !pageNumber || !canvas || !container) return
-    const targetWidth = container.clientWidth || 640
-    renderPageToCanvas(doc, pageNumber, canvas, targetWidth).catch((err) =>
-      console.error('Failed to render PDF page', err)
-    )
-  }, [doc, pageNumber])
+    if (!source || !pageNumber || !canvas || !container) return
+    const maxWidth = container.clientWidth || 640
+    const maxHeight = container.clientHeight || 360
+    source
+      .renderFrame(pageNumber, canvas, maxWidth, maxHeight)
+      .catch((err) => console.error('Failed to render slide', err))
+  }, [source, pageNumber])
 
   return (
     <div className="slide-slot">
@@ -40,15 +40,15 @@ function SlideCanvas({
   )
 }
 
-function PdfViewer({ doc, currentPage, totalPages }: Props): React.JSX.Element {
+function SlideViewer({ source, currentPage, totalPages }: Props): React.JSX.Element {
   const nextPage = currentPage < totalPages ? currentPage + 1 : null
 
   return (
     <div className="pdf-viewer">
-      <SlideCanvas doc={doc} pageNumber={doc ? currentPage : null} label="Now" />
-      <SlideCanvas doc={doc} pageNumber={nextPage} label="Next" />
+      <SlideCanvas source={source} pageNumber={source ? currentPage : null} label="Now" />
+      <SlideCanvas source={source} pageNumber={nextPage} label="Next" />
     </div>
   )
 }
 
-export default PdfViewer
+export default SlideViewer

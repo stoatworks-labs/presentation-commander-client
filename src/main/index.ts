@@ -5,12 +5,11 @@ import os from 'os'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { serverLink } from './services/serverLink'
+import { ndiSenderService } from './services/ndiSender'
+import { keynoteBridge } from './services/keynoteBridge'
+import { browserBridge } from './services/browserBridge'
 import type { RegisterMessage, SlideStateMessage } from '../shared/protocol'
-
-interface ProgramOutState {
-  data: string
-  currentPage: number
-}
+import type { ProgramOutState } from '../shared/programOut'
 
 interface DisplayInfo {
   id: number
@@ -156,6 +155,13 @@ app.whenReady().then(() => {
 
   serverLink.on('status', (status) => mainWindow.webContents.send('server:status', status))
   serverLink.on('command', (command) => mainWindow.webContents.send('server:command', command))
+  keynoteBridge.on('current-slide-changed', (page: number) =>
+    mainWindow.webContents.send('keynote:current-slide-changed', page)
+  )
+  browserBridge.on('slide-update', (update) =>
+    mainWindow.webContents.send('browser-bridge:slide-update', update)
+  )
+  browserBridge.start()
 
   ipcMain.handle('system:info', () => ({
     hostname: os.hostname().replace(/\.local$/, ''),
@@ -172,6 +178,23 @@ app.whenReady().then(() => {
     const data = await readFile(filePath)
     return { filePath, data: data.toString('base64') }
   })
+
+  ipcMain.handle('keynote:open', async () => {
+    const result = await dialog.showOpenDialog(mainWindow, {
+      properties: ['openFile'],
+      filters: [{ name: 'Keynote', extensions: ['key'] }]
+    })
+    if (result.canceled || result.filePaths.length === 0) return null
+    const filePath = result.filePaths[0]
+    const opened = await keynoteBridge.open(filePath)
+    return { filePath, ...opened }
+  })
+  ipcMain.handle('keynote:goto', (_e, page: number) => keynoteBridge.goTo(page))
+  ipcMain.handle('keynote:close', () => keynoteBridge.close())
+
+  ipcMain.handle('browser-bridge:navigate', (_e, direction: 'next' | 'previous') =>
+    browserBridge.navigate(direction)
+  )
 
   ipcMain.handle('notes:load', async (_e, pdfPath: string) => {
     try {
@@ -212,6 +235,23 @@ app.whenReady().then(() => {
     mainWindow.webContents.send('program-out:displays-changed', listDisplays())
   )
 
+  ipcMain.handle('ndi:toggle', (_e, name: string) => {
+    if (ndiSenderService.isActive()) {
+      ndiSenderService.stop()
+    } else {
+      ndiSenderService.start(name)
+    }
+    return ndiSenderService.isActive()
+  })
+  ipcMain.handle('ndi:is-active', () => ndiSenderService.isActive())
+  ipcMain.handle('ndi:push-frame', (_e, data: Uint8Array, width: number, height: number) => {
+    ndiSenderService.sendFrame(
+      Buffer.from(data.buffer, data.byteOffset, data.byteLength),
+      width,
+      height
+    )
+  })
+
   app.on('activate', function () {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
@@ -219,6 +259,7 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
   serverLink.disconnect()
+  ndiSenderService.stop()
   if (process.platform !== 'darwin') {
     app.quit()
   }

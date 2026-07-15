@@ -6,15 +6,18 @@ import type {
   RemoteCommandMessage,
   SlideStateMessage
 } from '../shared/protocol'
+import type { ProgramOutState } from '../shared/programOut'
 
 interface OpenPdfResult {
   filePath: string
   data: string
 }
 
-interface ProgramOutState {
-  data: string
-  currentPage: number
+interface OpenKeynoteResult {
+  filePath: string
+  totalPages: number
+  notesBySlide: Record<number, string>
+  frameFiles: string[]
 }
 
 interface DisplayInfo {
@@ -24,6 +27,15 @@ interface DisplayInfo {
   height: number
   internal: boolean
   primary: boolean
+}
+
+interface BrowserSlideUpdate {
+  presentationId: string | null
+  slideId: string
+  index: number | null
+  total: number | null
+  frameDataUrl: string | null
+  notes: string
 }
 
 interface SystemInfo {
@@ -37,6 +49,30 @@ const api = {
   },
   pdf: {
     open: (): Promise<OpenPdfResult | null> => ipcRenderer.invoke('pdf:open')
+  },
+  keynote: {
+    open: (): Promise<OpenKeynoteResult | null> => ipcRenderer.invoke('keynote:open'),
+    goTo: (page: number): Promise<void> => ipcRenderer.invoke('keynote:goto', page),
+    close: (): Promise<void> => ipcRenderer.invoke('keynote:close'),
+    onCurrentSlideChanged: (callback: (page: number) => void) => {
+      const listener = (_e: Electron.IpcRendererEvent, page: number): void => callback(page)
+      ipcRenderer.on('keynote:current-slide-changed', listener)
+      return (): void => {
+        ipcRenderer.removeListener('keynote:current-slide-changed', listener)
+      }
+    }
+  },
+  browserBridge: {
+    navigate: (direction: 'next' | 'previous'): Promise<void> =>
+      ipcRenderer.invoke('browser-bridge:navigate', direction),
+    onSlideUpdate: (callback: (update: BrowserSlideUpdate) => void) => {
+      const listener = (_e: Electron.IpcRendererEvent, update: BrowserSlideUpdate): void =>
+        callback(update)
+      ipcRenderer.on('browser-bridge:slide-update', listener)
+      return (): void => {
+        ipcRenderer.removeListener('browser-bridge:slide-update', listener)
+      }
+    }
   },
   notes: {
     load: (pdfPath: string): Promise<Record<number, string>> =>
@@ -99,6 +135,12 @@ const api = {
         ipcRenderer.removeListener('program-out:state', listener)
       }
     }
+  },
+  ndiOutput: {
+    toggle: (name: string): Promise<boolean> => ipcRenderer.invoke('ndi:toggle', name),
+    isActive: (): Promise<boolean> => ipcRenderer.invoke('ndi:is-active'),
+    pushFrame: (data: Uint8Array, width: number, height: number): Promise<void> =>
+      ipcRenderer.invoke('ndi:push-frame', data, width, height)
   }
 }
 

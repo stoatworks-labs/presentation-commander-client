@@ -1,0 +1,72 @@
+name: Build Windows
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  NDI_SDK_DIR: C:\Program Files\NDI\NDI 6 SDK
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Download NDI SDK for Windows
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri "https://downloads.ndi.tv/SDK/NDI_SDK/NDI%206%20SDK.exe" -OutFile "$env:RUNNER_TEMP\ndi-sdk-installer.exe"
+
+      - name: Extract NDI SDK
+        shell: pwsh
+        timeout-minutes: 10
+        run: |
+          # Run innoextract against the installer instead of executing it —
+          # actually running it hangs forever in CI, either on the
+          # SmartScreen prompt for a freshly-downloaded exe or the UAC
+          # elevation prompt Inno Setup admin installs require, neither of
+          # which has anyone present to click it. Extracting the archive
+          # directly sidesteps both entirely.
+          choco install innoextract -y --no-progress
+          innoextract --output-dir "$env:RUNNER_TEMP\ndi-sdk" "$env:RUNNER_TEMP\ndi-sdk-installer.exe"
+          New-Item -ItemType Directory -Force -Path "$env:NDI_SDK_DIR" | Out-Null
+          Copy-Item -Recurse -Force "$env:RUNNER_TEMP\ndi-sdk\app\*" "$env:NDI_SDK_DIR\"
+          if (-not (Test-Path "$env:NDI_SDK_DIR\Include\Processing.NDI.Lib.h")) {
+            throw "NDI SDK extract did not land at $env:NDI_SDK_DIR"
+          }
+
+      - name: Install dependencies (rebuilds native addon against Electron ABI)
+        run: npm ci
+
+      - name: Bundle NDI runtime DLL next to the native addon
+        shell: pwsh
+        run: |
+          Copy-Item "$env:NDI_SDK_DIR\Bin\x64\Processing.NDI.Lib.x64.dll" -Destination "native\ndi-send\build\Release\Processing.NDI.Lib.x64.dll"
+
+      - name: Build Windows installer
+        run: npm run build:win
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: presentation-commander-client-windows
+          path: dist/*.exe
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: "${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || format('windows-build-{0}', github.run_number) }}"
+          name: "${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || format('Windows Build {0}', github.run_number) }}"
+          prerelease: ${{ !startsWith(github.ref, 'refs/tags/') }}
+          files: dist/*.exe
