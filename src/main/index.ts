@@ -8,6 +8,7 @@ import { serverLink } from './services/serverLink'
 import { ndiSenderService } from './services/ndiSender'
 import { keynoteBridge } from './services/keynoteBridge'
 import { browserBridge } from './services/browserBridge'
+import { getOAuthStatus, setOAuthClientId } from './services/googleSlidesSetup'
 import type { RegisterMessage, SlideStateMessage } from '../shared/protocol'
 import type { ProgramOutState } from '../shared/programOut'
 
@@ -194,6 +195,11 @@ app.whenReady().then(() => {
 
   ipcMain.handle('browser-bridge:navigate', (_e, direction: 'next' | 'previous') =>
     browserBridge.navigate(direction)
+  )
+
+  ipcMain.handle('google-slides-setup:get-status', () => getOAuthStatus())
+  ipcMain.handle('google-slides-setup:set-client-id', (_e, clientId: string) =>
+    setOAuthClientId(clientId)
   )
 
   ipcMain.handle('notes:load', async (_e, pdfPath: string) => {

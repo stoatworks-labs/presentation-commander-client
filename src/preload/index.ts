@@ -43,6 +43,12 @@ interface SystemInfo {
   platform: 'windows' | 'macos'
 }
 
+interface OAuthStatus {
+  configured: boolean
+  clientId: string | null
+  extensionId: string
+}
+
 const api = {
   system: {
     info: (): Promise<SystemInfo> => ipcRenderer.invoke('system:info')
@@ -73,6 +79,11 @@ const api = {
         ipcRenderer.removeListener('browser-bridge:slide-update', listener)
       }
     }
+  },
+  googleSlidesSetup: {
+    getStatus: (): Promise<OAuthStatus> => ipcRenderer.invoke('google-slides-setup:get-status'),
+    setClientId: (clientId: string): Promise<void> =>
+      ipcRenderer.invoke('google-slides-setup:set-client-id', clientId)
   },
   notes: {
     load: (pdfPath: string): Promise<Record<number, string>> =>

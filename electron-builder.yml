@@ -20,6 +20,7 @@ files:
   - '!native/*/build/config.gypi'
 asarUnpack:
   - resources/**
+  - extension/**
   - '**/*.node'
   - '**/*.dll'
 win:

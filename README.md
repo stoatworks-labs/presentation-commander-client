@@ -93,7 +93,12 @@ automatically via `@electron/rebuild`.
 to a live Google Slides Presenter View instead of a local PDF/Keynote
 file — load it via `chrome://extensions` → Developer mode → Load
 unpacked. Fetching speaker notes needs a one-time OAuth client
-registration in Google Cloud Console; see
+registration in Google Cloud Console — click the ⚙ next to "Connect
+Google Slides…" in the app for step-by-step in-app instructions and a
+field to paste the client ID directly into `extension/manifest.json`
+(no manual file editing needed; still requires one manual reload of the
+extension at `chrome://extensions` afterward, since Chrome only picks up
+manifest changes on reload). The full walkthrough is also written out at
 [`extension/OAUTH_SETUP.md`](extension/OAUTH_SETUP.md).
 
 ## Project Setup

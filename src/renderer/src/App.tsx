@@ -12,6 +12,7 @@ import Transport from './components/Transport'
 import ConnectionPanel from './components/ConnectionPanel'
 import ProgramOutControl from './components/ProgramOutControl'
 import NdiOutputControl from './components/NdiOutputControl'
+import GoogleSlidesSetup from './components/GoogleSlidesSetup'
 
 const NDI_STREAM_PROGRAM = 'program'
 const NDI_STREAM_NEXT = 'next'
@@ -31,6 +32,7 @@ function App(): React.JSX.Element {
   const ndiCanvasRef = useRef<HTMLCanvasElement>(document.createElement('canvas'))
   const [nextNdiActive, setNextNdiActive] = useState(false)
   const nextNdiCanvasRef = useRef<HTMLCanvasElement>(document.createElement('canvas'))
+  const [showGoogleSlidesSetup, setShowGoogleSlidesSetup] = useState(false)
 
   const totalPagesRef = useRef(0)
   useEffect(() => {
@@ -253,8 +255,19 @@ function App(): React.JSX.Element {
           <button className="transport-btn" onClick={connectGoogleSlides}>
             Connect Google Slides…
           </button>
+          <button
+            className="icon-btn"
+            title="Google Slides OAuth setup"
+            onClick={() => setShowGoogleSlidesSetup(true)}
+          >
+            ⚙
+          </button>
         </div>
       </div>
+
+      {showGoogleSlidesSetup && (
+        <GoogleSlidesSetup onClose={() => setShowGoogleSlidesSetup(false)} />
+      )}
 
       <ConnectionPanel
         status={status}
