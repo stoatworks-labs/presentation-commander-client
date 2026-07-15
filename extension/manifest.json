@@ -1,0 +1,25 @@
+{
+  "manifest_version": 3,
+  "name": "Presentation Commander — Google Slides Bridge",
+  "version": "1.0.0",
+  "description": "Relays the live current slide, notes, and navigation for Google Slides Presenter View to the Presentation Commander Client app.",
+  "permissions": ["identity"],
+  "host_permissions": [
+    "https://docs.google.com/presentation/*",
+    "https://www.googleapis.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://docs.google.com/presentation/*/present*"],
+      "js": ["content-script.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "oauth2": {
+    "client_id": "REPLACE_WITH_GOOGLE_CLOUD_OAUTH_CLIENT_ID.apps.googleusercontent.com",
+    "scopes": ["https://www.googleapis.com/auth/presentations.readonly"]
+  }
+}
