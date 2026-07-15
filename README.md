@@ -1,9 +1,9 @@
 # Presentation Commander — Client
 
-> **AI-assisted project.** This codebase was built with the help of
-> [Claude](https://claude.ai), Anthropic's AI assistant — including
-> architecture, implementation, and documentation. Review it accordingly
-> before relying on it in production.
+> **AI-assisted project.** This codebase was created with [Claude](https://claude.com/claude-code)
+> (Anthropic), directed and reviewed by a human author — including architecture,
+> implementation, and documentation. Review it accordingly before relying on it in
+> production.
 
 The presentation laptop companion app for
 [presentation-commander-server](https://github.com/allansargeant/presentation-commander-server).
@@ -100,6 +100,14 @@ field to paste the client ID directly into `extension/manifest.json`
 extension at `chrome://extensions` afterward, since Chrome only picks up
 manifest changes on reload). The full walkthrough is also written out at
 [`extension/OAUTH_SETUP.md`](extension/OAUTH_SETUP.md).
+
+## Status
+
+Feature-complete for its current scope: the bespoke PDF engine, Keynote (macOS)
+and Google Slides sources, dual NDI outputs (Program + Next Slide), presenter
+notes, Program Out window, and the Master Server link / Control Surface
+integration are all built and verified. Keynote drive is macOS-only — other
+platforms use the PDF and Google Slides paths.
 
 ## Project Setup
 
