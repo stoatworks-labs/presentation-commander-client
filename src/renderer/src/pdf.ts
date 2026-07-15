@@ -16,7 +16,16 @@ export function loadPdf(base64: string): Promise<PDFDocumentProxy> {
 }
 
 const activeRenders = new WeakMap<HTMLCanvasElement, RenderTask>()
+const renderQueues = new WeakMap<HTMLCanvasElement, Promise<void>>()
+const renderGenerations = new WeakMap<HTMLCanvasElement, number>()
 
+// Callers (SlideViewer's Now/Next canvases, ProgramOut) kick off renders from React
+// effects without awaiting the previous call, so two renderAtScale calls for the same
+// canvas can be in flight at once. Serialize per canvas and drop any queued call that's
+// been superseded by a newer one before it ever touches the canvas — otherwise an
+// in-flight pdf.js render can still be mutating the 2D context (mid save/restore) when
+// the next one starts resizing the canvas out from under it, which has been observed to
+// leave the context transform corrupted (manifesting as a rotated frame).
 async function renderAtScale(
   doc: PDFDocumentProxy,
   pageNumber: number,
@@ -25,6 +34,26 @@ async function renderAtScale(
 ): Promise<void> {
   activeRenders.get(canvas)?.cancel()
 
+  const myGeneration = (renderGenerations.get(canvas) ?? 0) + 1
+  renderGenerations.set(canvas, myGeneration)
+
+  const previous = renderQueues.get(canvas) ?? Promise.resolve()
+  const current = previous
+    .catch(() => {})
+    .then(() => {
+      if (renderGenerations.get(canvas) !== myGeneration) return
+      return renderAtScaleNow(doc, pageNumber, canvas, scale)
+    })
+  renderQueues.set(canvas, current)
+  return current
+}
+
+async function renderAtScaleNow(
+  doc: PDFDocumentProxy,
+  pageNumber: number,
+  canvas: HTMLCanvasElement,
+  scale: number
+): Promise<void> {
   const page = await doc.getPage(pageNumber)
   const viewport = page.getViewport({ scale })
 
@@ -45,6 +74,8 @@ async function renderAtScale(
   } catch (err) {
     if (err instanceof Error && err.name === 'RenderingCancelledException') return
     throw err
+  } finally {
+    if (activeRenders.get(canvas) === task) activeRenders.delete(canvas)
   }
 }
 
