@@ -3,7 +3,10 @@ import { WebSocketServer, WebSocket } from 'ws'
 
 const PORT = 9801
 
+export type BrowserSourceApp = 'google-slides' | 'canva'
+
 export interface BrowserSlideUpdate {
+  app: BrowserSourceApp
   presentationId: string | null
   slideId: string
   index: number | null
@@ -14,6 +17,7 @@ export interface BrowserSlideUpdate {
 
 interface IncomingMessage {
   type: 'slide-update' | 'slide-notes'
+  app: BrowserSourceApp
   presentationId: string | null
   slideId: string
   index?: number | null
@@ -23,13 +27,16 @@ interface IncomingMessage {
 }
 
 /**
- * Local bridge for the Google Slides browser extension (extension/) — it
- * connects here from its background service worker and reports live
- * slide/notes state from the audience-facing Presenter tab it's watching.
- * Frame + index arrive immediately on 'slide-update'; notes resolve a beat
- * later via a separate 'slide-notes' message (fetched from the Slides API,
- * not scraped), so they're cached by slideId and merged into whichever
- * update is current when they land.
+ * Local bridge for the browser extension (extension/) — it connects here
+ * from its background service worker and reports live slide/notes state
+ * from whichever platform it's watching (Google Slides' audience tab or
+ * Canva's Presenter popout). Frame + index arrive immediately on
+ * 'slide-update'; Google Slides' notes resolve a beat later via a separate
+ * 'slide-notes' message (fetched from the Slides API, not scraped) and get
+ * cached by slideId, while Canva's notes are scraped in-page and arrive
+ * already populated on 'slide-update'. Only one platform is ever actively
+ * presenting at a time, but `app` tags every update so each SlideSource can
+ * ignore updates meant for the other.
  */
 class BrowserBridgeService extends EventEmitter {
   private wss: WebSocketServer | null = null
@@ -54,12 +61,16 @@ class BrowserBridgeService extends EventEmitter {
 
         if (message.type === 'slide-update') {
           this.latest = {
+            app: message.app,
             presentationId: message.presentationId,
             slideId: message.slideId,
             index: message.index ?? null,
             total: message.total ?? null,
             frameDataUrl: message.frameDataUrl ?? null,
-            notes: this.notesBySlideId.get(message.slideId) ?? ''
+            // Canva already resolves notes in-page and sends them here directly
+            // (message.notes); Google Slides sends '' here and fills it in a beat
+            // later via 'slide-notes', keyed off the notesBySlideId cache instead.
+            notes: message.notes || this.notesBySlideId.get(message.slideId) || ''
           }
           this.emit('slide-update', this.latest)
         } else if (message.type === 'slide-notes') {
@@ -87,9 +98,9 @@ class BrowserBridgeService extends EventEmitter {
     this.wss = null
   }
 
-  navigate(direction: 'next' | 'previous'): void {
+  navigate(direction: 'next' | 'previous', app: BrowserSourceApp): void {
     if (this.socket?.readyState === WebSocket.OPEN) {
-      this.socket.send(JSON.stringify({ type: 'navigate', direction }))
+      this.socket.send(JSON.stringify({ type: 'navigate', direction, app }))
     }
   }
 }

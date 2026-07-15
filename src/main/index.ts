@@ -9,6 +9,7 @@ import { ndiSenderService } from './services/ndiSender'
 import { keynoteBridge } from './services/keynoteBridge'
 import { powerpointBridge } from './services/powerpointBridge'
 import { browserBridge } from './services/browserBridge'
+import type { BrowserSourceApp } from './services/browserBridge'
 import { getOAuthStatus, setOAuthClientId } from './services/googleSlidesSetup'
 import type { RegisterMessage, SlideStateMessage } from '../shared/protocol'
 import type { ProgramOutState } from '../shared/programOut'
@@ -210,8 +211,10 @@ app.whenReady().then(() => {
   ipcMain.handle('powerpoint:goto', (_e, page: number) => powerpointBridge.goTo(page))
   ipcMain.handle('powerpoint:close', () => powerpointBridge.close())
 
-  ipcMain.handle('browser-bridge:navigate', (_e, direction: 'next' | 'previous') =>
-    browserBridge.navigate(direction)
+  ipcMain.handle(
+    'browser-bridge:navigate',
+    (_e, direction: 'next' | 'previous', app: BrowserSourceApp) =>
+      browserBridge.navigate(direction, app)
   )
 
   ipcMain.handle('google-slides-setup:get-status', () => getOAuthStatus())

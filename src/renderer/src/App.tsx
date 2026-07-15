@@ -7,6 +7,7 @@ import { createPdfSource } from './sources/pdfSource'
 import { createKeynoteSource } from './sources/keynoteSource'
 import { createPowerPointSource } from './sources/powerpointSource'
 import { createGoogleSlidesSource } from './sources/googleSlidesSource'
+import { createCanvaSource } from './sources/canvaSource'
 import SlideViewer from './components/SlideViewer'
 import NotesPanel from './components/NotesPanel'
 import Transport from './components/Transport'
@@ -117,12 +118,13 @@ function App(): React.JSX.Element {
     return activeSource.onExternalPageChange(setCurrentPage)
   }, [activeSource])
 
-  // Google Slides has no local file to read totalPages/notes from up front —
-  // both arrive incrementally from the extension as the presenter navigates,
-  // so build them up here instead of at "open" time like PDF/Keynote.
+  // Google Slides and Canva have no local file to read totalPages/notes from
+  // up front — both arrive incrementally from the extension as the presenter
+  // navigates, so build them up here instead of at "open" time like PDF/Keynote.
   useEffect(() => {
-    if (activeSource?.kind !== 'google-slides') return
+    if (activeSource?.kind !== 'google-slides' && activeSource?.kind !== 'canva') return
     return window.api.browserBridge.onSlideUpdate((update) => {
+      if (update.app !== activeSource.kind) return
       if (update.total) setTotalPages(update.total)
       if (update.index !== null) {
         setNotesBySlide((prev) => ({ ...prev, [update.index as number]: update.notes }))
@@ -221,6 +223,20 @@ function App(): React.JSX.Element {
     setNotesBySlide({})
   }
 
+  const connectCanva = (): void => {
+    activeSource?.dispose()
+    setFilePath(null)
+    setActiveSource(
+      createCanvaSource({
+        navigate: window.api.browserBridge.navigate,
+        onSlideUpdate: window.api.browserBridge.onSlideUpdate
+      })
+    )
+    setTotalPages(0)
+    setCurrentPage(1)
+    setNotesBySlide({})
+  }
+
   const toggleNdi = async (): Promise<void> => {
     try {
       const nowActive = await window.api.ndiOutput.toggle(
@@ -284,6 +300,9 @@ function App(): React.JSX.Element {
           >
             ⚙
           </button>
+          <button className="transport-btn" onClick={connectCanva}>
+            Connect Canva…
+          </button>
         </div>
       </div>
 
@@ -320,6 +339,8 @@ function App(): React.JSX.Element {
         </>
       ) : activeSource?.kind === 'google-slides' ? (
         <div className="empty-state">Waiting for a Google Slides tab to start presenting…</div>
+      ) : activeSource?.kind === 'canva' ? (
+        <div className="empty-state">Waiting for a Canva Presenter Window to open…</div>
       ) : (
         <div className="empty-state">Open a PDF to start presenting.</div>
       )}

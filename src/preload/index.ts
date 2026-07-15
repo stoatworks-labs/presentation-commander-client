@@ -36,7 +36,10 @@ interface DisplayInfo {
   primary: boolean
 }
 
+type BrowserSourceApp = 'google-slides' | 'canva'
+
 interface BrowserSlideUpdate {
+  app: BrowserSourceApp
   presentationId: string | null
   slideId: string
   index: number | null
@@ -88,8 +91,8 @@ const api = {
     }
   },
   browserBridge: {
-    navigate: (direction: 'next' | 'previous'): Promise<void> =>
-      ipcRenderer.invoke('browser-bridge:navigate', direction),
+    navigate: (direction: 'next' | 'previous', app: BrowserSourceApp): Promise<void> =>
+      ipcRenderer.invoke('browser-bridge:navigate', direction, app),
     onSlideUpdate: (callback: (update: BrowserSlideUpdate) => void) => {
       const listener = (_e: Electron.IpcRendererEvent, update: BrowserSlideUpdate): void =>
         callback(update)

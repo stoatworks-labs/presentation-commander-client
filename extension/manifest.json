@@ -1,11 +1,15 @@
 {
   "manifest_version": 3,
-  "name": "Presentation Commander — Google Slides Bridge",
-  "version": "1.0.0",
-  "description": "Relays the live current slide, notes, and navigation for Google Slides Presenter View to the Presentation Commander Client app.",
+  "name": "Presentation Commander — Browser Bridge",
+  "version": "1.1.0",
+  "description": "Relays the live current slide, notes, and navigation for Google Slides Presenter View and Canva's Presenter Window to the Presentation Commander Client app.",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAlNiVvf16lMJO6moWncdZODUQWfjeJhmDtljn8h+v8CrwQ5OoAV2BzfTJpPG9619Za2NG3+QioowaVolzHwdjySIeWrRBmSddMVgPSAaAEraVUP0sz6Ui2e3Flf28X9a7ViBtz/wdGC/+2AYLM5VNJWiYd1qokTMCWbGlA5MEQdV7bhDgOECztXjneANUqCK+Rh+ACIW7WXkzNbqyiORJ6vKfXafFxNxqiuGC1mM7pDg4+L/d6qSK7Qf1jkjIF7FVc4upssXA8G75qHQSFktNk7yrC7brU6Jgd8Jvgt6nSfuj8JBcus8HaOtXZu1OwhGUJlAWLI25eYwxMrsrhddmJwIDAQAB",
   "permissions": ["identity"],
-  "host_permissions": ["https://docs.google.com/presentation/*", "https://www.googleapis.com/*"],
+  "host_permissions": [
+    "https://docs.google.com/presentation/*",
+    "https://www.googleapis.com/*",
+    "https://www.canva.com/popout*"
+  ],
   "background": {
     "service_worker": "background.js"
   },
@@ -13,6 +17,11 @@
     {
       "matches": ["https://docs.google.com/presentation/*/present*"],
       "js": ["content-script.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://www.canva.com/popout*"],
+      "js": ["canva-content-script.js"],
       "run_at": "document_idle"
     }
   ],

@@ -1,11 +1,19 @@
-// Service worker: bridges the content script (which sees the live Slides
-// tab) to the Presentation Commander Client's local WebSocket server, and
-// resolves speaker notes via the official Slides API instead of scraping
-// the presenter-notes popup (which a content script running on the
-// audience tab can't reach anyway — see the plan's Phase 2 notes).
+// Service worker: bridges whichever content script is currently active
+// (Google Slides' audience tab, or Canva's Presenter Window) to the
+// Presentation Commander Client's local WebSocket server. Google Slides
+// notes are resolved via the official Slides API instead of scraping the
+// presenter-notes popup (which a content script running on the audience tab
+// can't reach anyway — see the plan's Phase 2 notes); Canva has no
+// equivalent public API, so canva-content-script.js scrapes notes text
+// directly from the Presenter Window's DOM and sends it already resolved.
 
 const BRIDGE_URL = 'ws://localhost:9801'
-const notesCache = new Map() // presentationId+slideId -> notes text
+const notesCache = new Map() // presentationId+slideId -> notes text (Google Slides only)
+
+const CONTENT_SCRIPT_URL_PATTERNS = {
+  'google-slides': 'https://docs.google.com/presentation/*/present*',
+  canva: 'https://www.canva.com/popout*'
+}
 
 let socket = null
 let reconnectTimer = null
@@ -55,8 +63,19 @@ function send(payload) {
   if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify(payload))
 }
 
+// MV3 service workers get suspended after ~30s idle, and any pending
+// setTimeout (scheduleReconnect's 2s retry included) is discarded when that
+// happens rather than firing later — so a dead socket can sit un-reconnected
+// indefinitely with nothing left to wake it. Rather than trust the timer,
+// treat every incoming event as a chance to notice the socket isn't OPEN and
+// re-establish it — this covers both a genuinely fresh worker restart (where
+// connect() at the bottom of this file already handles it) and a resumed
+// worker whose in-memory `socket` still points at something CLOSED.
+
 async function forwardToActiveContentScript(message) {
-  const tabs = await chrome.tabs.query({ url: 'https://docs.google.com/presentation/*/present*' })
+  const pattern = CONTENT_SCRIPT_URL_PATTERNS[message.app]
+  const urls = pattern ? [pattern] : Object.values(CONTENT_SCRIPT_URL_PATTERNS)
+  const tabs = await chrome.tabs.query({ url: urls })
   for (const tab of tabs) {
     if (tab.id) chrome.tabs.sendMessage(tab.id, message)
   }
@@ -104,25 +123,47 @@ async function fetchNotes(presentationId, slideId) {
 }
 
 chrome.runtime.onMessage.addListener((message) => {
-  if (message?.type !== 'slide-update') return
-  send({
-    type: 'slide-update',
-    presentationId: message.presentationId,
-    slideId: message.slideId,
-    index: message.index,
-    total: message.total,
-    frameDataUrl: message.frameDataUrl,
-    notes: ''
-  })
+  connect()
 
-  if (message.presentationId && message.slideId) {
-    fetchNotes(message.presentationId, message.slideId).then((notes) => {
-      send({
-        type: 'slide-notes',
-        presentationId: message.presentationId,
-        slideId: message.slideId,
-        notes
+  if (message?.type === 'slide-update') {
+    send({
+      type: 'slide-update',
+      app: 'google-slides',
+      presentationId: message.presentationId,
+      slideId: message.slideId,
+      index: message.index,
+      total: message.total,
+      frameDataUrl: message.frameDataUrl,
+      notes: ''
+    })
+
+    if (message.presentationId && message.slideId) {
+      fetchNotes(message.presentationId, message.slideId).then((notes) => {
+        send({
+          type: 'slide-notes',
+          app: 'google-slides',
+          presentationId: message.presentationId,
+          slideId: message.slideId,
+          notes
+        })
       })
+    }
+    return
+  }
+
+  if (message?.type === 'canva-slide-update') {
+    // Canva has already resolved notes text in-page (no API to fetch it
+    // from), so this sends a complete update in one message — no matching
+    // 'slide-notes' follow-up like Google Slides needs.
+    send({
+      type: 'slide-update',
+      app: 'canva',
+      presentationId: null,
+      slideId: message.slideId,
+      index: message.index,
+      total: message.total,
+      frameDataUrl: message.frameDataUrl,
+      notes: message.notes ?? ''
     })
   }
 })

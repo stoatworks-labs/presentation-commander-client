@@ -11,7 +11,7 @@ interface BrowserSlideUpdate {
   notes: string
 }
 
-/** The subset of window.api.browserBridge a GoogleSlidesSource needs. */
+/** The subset of window.api.browserBridge a CanvaSource needs. */
 export interface BrowserBridgeHandle {
   navigate(direction: 'next' | 'previous', app: 'google-slides' | 'canva'): Promise<void>
   onSlideUpdate(callback: (update: BrowserSlideUpdate) => void): () => void
@@ -21,28 +21,29 @@ function loadImage(url: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image()
     img.onload = () => resolve(img)
-    img.onerror = () => reject(new Error('Failed to load Google Slides frame'))
+    img.onerror = () => reject(new Error('Failed to load Canva frame'))
     img.src = url
   })
 }
 
 /**
- * SlideSource backed by the Google Slides browser extension (extension/) —
- * see main/services/browserBridge.ts for the local WebSocket side. Unlike
- * Keynote's pre-exported deck, the extension only ever reports the *current*
- * slide it's watching — there's no way to pre-fetch a "next" frame without
- * actually navigating there, so renderFrame only has real pixels for
- * whatever page the extension last reported and draws nothing otherwise.
+ * SlideSource backed by the Canva browser extension (extension/) — see
+ * main/services/browserBridge.ts for the local WebSocket side. Mirrors
+ * googleSlidesSource.ts: no local file, state arrives incrementally from
+ * the extension as the presenter navigates Canva's Presenter Window.
+ * Unlike Google Slides, Canva's notes are scraped directly from the
+ * Presenter Window's DOM (there's no equivalent public notes API), so they
+ * arrive already resolved on the same 'slide-update' the frame does.
  */
-export function createGoogleSlidesSource(handle: BrowserBridgeHandle): SlideSource {
+export function createCanvaSource(handle: BrowserBridgeHandle): SlideSource {
   let latest: BrowserSlideUpdate | null = null
   const unsubscribeInternal = handle.onSlideUpdate((update) => {
-    if (update.app !== 'google-slides') return
+    if (update.app !== 'canva') return
     latest = update
   })
 
   return {
-    kind: 'google-slides',
+    kind: 'canva',
     async renderFrame(page, canvas, maxWidth, maxHeight) {
       if (!latest || latest.index !== page || !latest.frameDataUrl) return
       const img = await loadImage(latest.frameDataUrl)
@@ -55,11 +56,11 @@ export function createGoogleSlidesSource(handle: BrowserBridgeHandle): SlideSour
     },
     goTo(page) {
       if (!latest?.index || page === latest.index) return Promise.resolve()
-      return handle.navigate(page > latest.index ? 'next' : 'previous', 'google-slides')
+      return handle.navigate(page > latest.index ? 'next' : 'previous', 'canva')
     },
     onExternalPageChange(callback) {
       return handle.onSlideUpdate((update) => {
-        if (update.app === 'google-slides' && update.index !== null) callback(update.index)
+        if (update.app === 'canva' && update.index !== null) callback(update.index)
       })
     },
     getProgramOutPayload(page): ProgramOutState {
