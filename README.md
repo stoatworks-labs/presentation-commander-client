@@ -15,7 +15,13 @@ desktop app — no PowerPoint or Keynote dependency.
 ## What it does
 
 - **Bespoke PDF engine** — open a PDF, get Now/Next slide previews rendered
-  locally with pdf.js
+  locally with pdf.js. Internal links authored into the PDF (a table of
+  contents, "back to agenda" links exported from PowerPoint/Keynote/Google
+  Slides) are clickable on the "Now" slide, jumping straight to their target
+  page — reads link annotations via pdf.js, resolving each destination to a
+  page number regardless of whether it's named or explicit; PDF-only, since
+  it's exposed as an optional `getLinks` on `SlideSource` that only
+  `pdfSource.ts` implements
 - **Keynote integration** (macOS) — drive a real, currently-open Keynote
   slideshow directly via AppleScript instead of a pre-exported PDF: slide
   count and presenter notes are pulled on open, navigating in our UI

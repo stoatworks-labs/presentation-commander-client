@@ -448,7 +448,12 @@ function App(): React.JSX.Element {
 
       {activeSource && totalPages > 0 ? (
         <>
-          <SlideViewer source={activeSource} currentPage={currentPage} totalPages={totalPages} />
+          <SlideViewer
+            source={activeSource}
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onNavigate={setCurrentPage}
+          />
           <Transport
             currentPage={currentPage}
             totalPages={totalPages}

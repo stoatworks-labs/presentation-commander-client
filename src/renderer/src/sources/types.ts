@@ -1,4 +1,5 @@
 import type { ProgramOutState } from '../../../shared/programOut'
+import type { PageLinksResult } from '../pdf'
 
 /**
  * A SlideSource is whatever is currently driving the presentation — a PDF
@@ -34,6 +35,15 @@ export interface SlideSource {
 
   /** What Program Out should render for `page` — see shared/programOut.ts. */
   getProgramOutPayload(page: number): ProgramOutState
+
+  /**
+   * Internal "jump to page" links authored into the source itself (PDF
+   * table-of-contents / "back to agenda" links). Only meaningful for
+   * sources with real page content to scan for annotations — omitted
+   * entirely (not just returning an empty result) for sources where the
+   * concept doesn't apply, e.g. Keynote/PowerPoint/Google Slides/Canva.
+   */
+  getLinks?(page: number): Promise<PageLinksResult>
 
   dispose(): void
 }
