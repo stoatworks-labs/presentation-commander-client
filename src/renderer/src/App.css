@@ -50,6 +50,80 @@
   opacity: 0.6;
 }
 
+.live-capture-control {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  position: relative;
+  -webkit-app-region: no-drag;
+}
+
+.live-capture-control--blocked {
+  gap: 8px;
+}
+
+.live-capture-blocked-label {
+  font-size: 11.5px;
+  color: var(--text-2);
+}
+
+.live-capture-panel {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 10px;
+  width: 260px;
+  font-size: 12px;
+}
+
+.live-capture-panel select {
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  color: var(--text-1);
+  padding: 5px 8px;
+  border-radius: 3px;
+  font-size: 12px;
+}
+
+.live-capture-crop-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  color: var(--text-2);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.live-capture-crop-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.live-capture-crop-fields label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 11px;
+  color: var(--text-2);
+}
+
+.live-capture-crop-fields input {
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  color: var(--text-1);
+  padding: 4px 6px;
+  border-radius: 3px;
+  font-size: 12px;
+}
+
 .connection-panel {
   flex-shrink: 0;
   display: flex;

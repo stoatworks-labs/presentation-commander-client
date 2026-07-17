@@ -10,6 +10,7 @@ import { keynoteBridge } from './services/keynoteBridge'
 import { powerpointBridge } from './services/powerpointBridge'
 import { browserBridge } from './services/browserBridge'
 import type { BrowserSourceApp } from './services/browserBridge'
+import { screenCaptureService } from './services/screenCapture'
 import { getOAuthStatus, setOAuthClientId } from './services/googleSlidesSetup'
 import type { RegisterMessage, SlideStateMessage } from '../shared/protocol'
 import type { ProgramOutState } from '../shared/programOut'
@@ -65,7 +66,15 @@ function createWindow(): BrowserWindow {
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
-      sandbox: false
+      sandbox: false,
+      // Confirmed live: Chromium throttles setInterval in backgrounded
+      // windows hard enough to stall the live-capture push loop (see
+      // liveCapture.ts) within seconds — and this app is backgrounded by
+      // design during real use, since the presenter app (Keynote/
+      // PowerPoint) is what's actually frontmost while presenting. Without
+      // this flag, live capture only works while this window happens to be
+      // focused, which defeats the point of it.
+      backgroundThrottling: false
     }
   })
 
@@ -168,6 +177,20 @@ app.whenReady().then(() => {
     mainWindow.webContents.send('browser-bridge:slide-update', update)
   )
   browserBridge.start()
+  screenCaptureService.installDisplayMediaHandler()
+
+  ipcMain.handle('screen-capture:list-sources', () => screenCaptureService.listSources())
+  ipcMain.handle('screen-capture:set-active', (_e, sourceId: string | null) =>
+    screenCaptureService.setActiveSource(sourceId)
+  )
+  ipcMain.handle('screen-capture:permission-status', () =>
+    screenCaptureService.getPermissionStatus()
+  )
+  ipcMain.handle('screen-capture:open-permission-settings', () =>
+    shell.openExternal(
+      'x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture'
+    )
+  )
 
   ipcMain.handle('system:info', () => ({
     hostname: os.hostname().replace(/\.local$/, ''),

@@ -37,6 +37,27 @@ desktop app — no PowerPoint or Keynote dependency.
   as Keynote's `start`/`show`); the editing view's current slide is enough
   for everything this app needs, since Program Out/NDI is what the audience
   actually sees
+- **Live capture for Keynote/PowerPoint** (macOS) — an alternative to the
+  static pre-exported-PNG frames above: captures the real on-screen display
+  live via `getDisplayMedia`, so animations, transitions, and embedded video
+  playback actually show up in the NDI output, not just a still image of
+  however the slide looked at export time. Opt-in per stream (Program and/or
+  Next Slide) via a gear icon next to each NDI toggle, which lists capturable
+  screens and offers an optional crop region (X/Y/W/H %) for isolating a
+  sub-area — e.g. just the "next slide" box out of a captured Presenter
+  Display that shows current + next + notes together. Two things had to be
+  fixed to make this reliable: the video element receiving the stream must
+  be attached to the DOM (a detached one stops receiving frames after a few
+  seconds — a Chromium resource-management heuristic based on visibility,
+  confirmed live), and the window needs `backgroundThrottling: false` in
+  `webPreferences`, since Chromium throttles `setInterval` hard enough to
+  stall the capture loop within seconds once backgrounded — which this app
+  is, by design, during real use (Keynote/PowerPoint is what's actually
+  frontmost while presenting). Fullscreen presentation windows aren't
+  enumerable via `desktopCapturer`'s window-level sources on macOS (confirmed
+  live — they sit above whatever window level that query reads), so this
+  captures a whole physical display rather than a specific window, matching
+  the existing Program Out display-picker's screen-based approach.
 - **Canva integration** — connects to a live Canva Presenter Window (opened
   via Present → Presenter view) through the same browser-extension bridge as
   Google Slides. Unlike Slides, Canva has no public API for speaker notes or
@@ -144,10 +165,11 @@ never fire.
 
 Feature-complete for its current scope: the bespoke PDF engine, Keynote
 (macOS), PowerPoint (macOS and Windows), Google Slides, and Canva sources,
-dual NDI outputs (Program + Next Slide), presenter notes, Program Out
-window, and the Master Server link / Control Surface integration are all
-built and verified. Keynote drive is macOS-only (no Windows equivalent
-exists); PDF, Google Slides, and Canva work on both platforms.
+dual NDI outputs (Program + Next Slide), live capture for Keynote/PowerPoint,
+presenter notes, Program Out window, and the Master Server link / Control
+Surface integration are all built and verified. Keynote drive and live
+capture are macOS-only (no Windows equivalent exists yet for either); PDF,
+Google Slides, and Canva work on both platforms.
 
 ## Project Setup
 

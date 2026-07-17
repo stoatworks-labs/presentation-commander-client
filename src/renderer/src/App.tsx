@@ -15,9 +15,13 @@ import ConnectionPanel from './components/ConnectionPanel'
 import ProgramOutControl from './components/ProgramOutControl'
 import NdiOutputControl from './components/NdiOutputControl'
 import GoogleSlidesSetup from './components/GoogleSlidesSetup'
+import LiveCaptureControl from './components/LiveCaptureControl'
+import { createLiveCapture } from './liveCapture'
+import type { CropRect } from './liveCapture'
 
 const NDI_STREAM_PROGRAM = 'program'
 const NDI_STREAM_NEXT = 'next'
+const LIVE_CAPTURE_FPS = 30
 
 function App(): React.JSX.Element {
   const [filePath, setFilePath] = useState<string | null>(null)
@@ -35,6 +39,33 @@ function App(): React.JSX.Element {
   const [nextNdiActive, setNextNdiActive] = useState(false)
   const nextNdiCanvasRef = useRef<HTMLCanvasElement>(document.createElement('canvas'))
   const [showGoogleSlidesSetup, setShowGoogleSlidesSetup] = useState(false)
+
+  // Live capture: an alternative, genuinely-live source for the Program/Next
+  // NDI streams (real animations/transitions/video, unlike the rest of the
+  // SlideSource pipeline's pre-exported static PNGs) — see liveCapture.ts.
+  // Only relevant for Keynote/PowerPoint, and only engaged when the operator
+  // explicitly picks a screen to capture; falls back to the existing static
+  // render path otherwise, so nothing about PDF/Slides/Canva changes.
+  const [programCaptureActive, setProgramCaptureActive] = useState(false)
+  const [nextCaptureActive, setNextCaptureActive] = useState(false)
+  const [programCaptureCrop, setProgramCaptureCrop] = useState<CropRect | null>(null)
+  const [nextCaptureCrop, setNextCaptureCrop] = useState<CropRect | null>(null)
+  const programCaptureHandleRef = useRef(createLiveCapture())
+  const nextCaptureHandleRef = useRef(createLiveCapture())
+
+  // Stop any live capture whenever the active source changes (switching
+  // decks, switching apps, or closing down) — otherwise a MediaStream would
+  // keep capturing the screen indefinitely after it's no longer relevant.
+  useEffect(() => {
+    const programHandle = programCaptureHandleRef.current
+    const nextHandle = nextCaptureHandleRef.current
+    return () => {
+      programHandle.stop()
+      setProgramCaptureActive(false)
+      nextHandle.stop()
+      setNextCaptureActive(false)
+    }
+  }, [activeSource])
 
   const totalPagesRef = useRef(0)
   useEffect(() => {
@@ -60,7 +91,7 @@ function App(): React.JSX.Element {
   }, [])
 
   useEffect(() => {
-    if (!ndiActive || !activeSource || !currentPage) return
+    if (!ndiActive || !activeSource || !currentPage || programCaptureActive) return
     const canvas = ndiCanvasRef.current
     activeSource
       .renderFrame(currentPage, canvas, 1920, 1080)
@@ -76,7 +107,30 @@ function App(): React.JSX.Element {
         )
       })
       .catch((err) => console.error('Failed to render frame for NDI output', err))
-  }, [ndiActive, activeSource, currentPage])
+  }, [ndiActive, activeSource, currentPage, programCaptureActive])
+
+  // Live-capture push loop: unlike the static-render effect above (which
+  // only needs to push a new frame when the page changes), a captured
+  // display is continuously changing, so this ticks on an interval instead
+  // of a dependency change.
+  useEffect(() => {
+    if (!ndiActive || !programCaptureActive) return
+    const canvas = ndiCanvasRef.current
+    const handle = programCaptureHandleRef.current
+    const timer = setInterval(() => {
+      if (!handle.drawCurrentFrame(canvas, 1920, 1080, programCaptureCrop)) return
+      const ctx = canvas.getContext('2d')
+      if (!ctx) return
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+      window.api.ndiOutput.pushFrame(
+        NDI_STREAM_PROGRAM,
+        new Uint8Array(imageData.data.buffer),
+        canvas.width,
+        canvas.height
+      )
+    }, 1000 / LIVE_CAPTURE_FPS)
+    return () => clearInterval(timer)
+  }, [ndiActive, programCaptureActive, programCaptureCrop])
 
   // Mirrors the Program Out NDI push above, but for the upcoming slide —
   // same source, same render path SlideViewer already uses for its "Next"
@@ -84,7 +138,7 @@ function App(): React.JSX.Element {
   // separate receiver (e.g. a stage monitor showing what's coming next)
   // can pick it up without needing the composited Confidence Monitor path.
   useEffect(() => {
-    if (!nextNdiActive || !activeSource || !totalPages) return
+    if (!nextNdiActive || !activeSource || !totalPages || nextCaptureActive) return
     const nextPage = currentPage < totalPages ? currentPage + 1 : null
     if (!nextPage) return
     const canvas = nextNdiCanvasRef.current
@@ -102,7 +156,29 @@ function App(): React.JSX.Element {
         )
       })
       .catch((err) => console.error('Failed to render frame for Next Slide NDI output', err))
-  }, [nextNdiActive, activeSource, currentPage, totalPages])
+  }, [nextNdiActive, activeSource, currentPage, totalPages, nextCaptureActive])
+
+  // Live-capture push loop for the Next Slide stream — same rationale as the
+  // Program stream's loop above. Typically used with a crop rect to isolate
+  // just the "next slide" sub-region of a captured Presenter Display screen.
+  useEffect(() => {
+    if (!nextNdiActive || !nextCaptureActive) return
+    const canvas = nextNdiCanvasRef.current
+    const handle = nextCaptureHandleRef.current
+    const timer = setInterval(() => {
+      if (!handle.drawCurrentFrame(canvas, 1920, 1080, nextCaptureCrop)) return
+      const ctx = canvas.getContext('2d')
+      if (!ctx) return
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+      window.api.ndiOutput.pushFrame(
+        NDI_STREAM_NEXT,
+        new Uint8Array(imageData.data.buffer),
+        canvas.width,
+        canvas.height
+      )
+    }, 1000 / LIVE_CAPTURE_FPS)
+    return () => clearInterval(timer)
+  }, [nextNdiActive, nextCaptureActive, nextCaptureCrop])
 
   // Keeps the underlying app (Keynote, etc.) in sync whenever currentPage
   // changes, however it changed — Transport, keyboard, or a remote command.
@@ -261,6 +337,36 @@ function App(): React.JSX.Element {
     }
   }
 
+  const startProgramCapture = async (sourceId: string, crop: CropRect | null): Promise<void> => {
+    try {
+      await programCaptureHandleRef.current.start(sourceId)
+      setProgramCaptureCrop(crop)
+      setProgramCaptureActive(true)
+    } catch (err) {
+      console.error('Failed to start live capture for Program NDI', err)
+    }
+  }
+
+  const stopProgramCapture = (): void => {
+    programCaptureHandleRef.current.stop()
+    setProgramCaptureActive(false)
+  }
+
+  const startNextCapture = async (sourceId: string, crop: CropRect | null): Promise<void> => {
+    try {
+      await nextCaptureHandleRef.current.start(sourceId)
+      setNextCaptureCrop(crop)
+      setNextCaptureActive(true)
+    } catch (err) {
+      console.error('Failed to start live capture for Next Slide NDI', err)
+    }
+  }
+
+  const stopNextCapture = (): void => {
+    nextCaptureHandleRef.current.stop()
+    setNextCaptureActive(false)
+  }
+
   const changeNotes = (text: string): void => {
     const next = { ...notesBySlide, [currentPage]: text }
     setNotesBySlide(next)
@@ -280,6 +386,24 @@ function App(): React.JSX.Element {
             label="Next Slide NDI"
             activeLabel="Stop Next Slide NDI"
           />
+          {(activeSource?.kind === 'keynote' || activeSource?.kind === 'powerpoint') && (
+            <>
+              <LiveCaptureControl
+                label="Main Output"
+                disabled={!ndiActive}
+                active={programCaptureActive}
+                onStart={startProgramCapture}
+                onStop={stopProgramCapture}
+              />
+              <LiveCaptureControl
+                label="Next Slide"
+                disabled={!nextNdiActive}
+                active={nextCaptureActive}
+                onStart={startNextCapture}
+                onStop={stopNextCapture}
+              />
+            </>
+          )}
           <ProgramOutControl disabled={!activeSource} />
           <button className="transport-btn" onClick={openPdf}>
             {filePath ? 'Open Different PDF…' : 'Open PDF…'}

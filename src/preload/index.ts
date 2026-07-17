@@ -59,6 +59,15 @@ interface OAuthStatus {
   extensionId: string
 }
 
+interface CaptureSourceInfo {
+  id: string
+  name: string
+  thumbnailDataUrl: string
+}
+
+type ScreenCapturePermissionStatus =
+  'granted' | 'denied' | 'restricted' | 'unknown' | 'not-determined'
+
 const api = {
   system: {
     info: (): Promise<SystemInfo> => ipcRenderer.invoke('system:info')
@@ -101,6 +110,16 @@ const api = {
         ipcRenderer.removeListener('browser-bridge:slide-update', listener)
       }
     }
+  },
+  screenCapture: {
+    listSources: (): Promise<CaptureSourceInfo[]> =>
+      ipcRenderer.invoke('screen-capture:list-sources'),
+    setActive: (sourceId: string | null): Promise<void> =>
+      ipcRenderer.invoke('screen-capture:set-active', sourceId),
+    permissionStatus: (): Promise<ScreenCapturePermissionStatus> =>
+      ipcRenderer.invoke('screen-capture:permission-status'),
+    openPermissionSettings: (): Promise<void> =>
+      ipcRenderer.invoke('screen-capture:open-permission-settings')
   },
   googleSlidesSetup: {
     getStatus: (): Promise<OAuthStatus> => ipcRenderer.invoke('google-slides-setup:get-status'),
