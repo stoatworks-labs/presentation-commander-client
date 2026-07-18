@@ -44,7 +44,34 @@ export function createLiveCapture(): LiveCaptureHandle {
   return {
     async start(sourceId) {
       await window.api.screenCapture.setActive(sourceId)
-      const acquired = await navigator.mediaDevices.getDisplayMedia({ video: true })
+      let acquired: MediaStream
+      try {
+        acquired = await navigator.mediaDevices.getDisplayMedia({ video: true })
+      } catch (err) {
+        // Confirmed live on a Parallels Windows VM: getDisplayMedia's capture
+        // pipeline throws AbortError "Error starting capture" even with a
+        // working, hardware-accelerated GPU (WebGL/D3D11 confirmed fine) —
+        // this VM's virtual display adapter doesn't support whatever capture
+        // API Chromium's newer getDisplayMedia path requires. The legacy
+        // chromeMediaSource desktop-capture API (mandatory constraints) uses
+        // a different, more compatible Chromium code path and works
+        // reliably in the same environment — confirmed live. It doesn't
+        // trigger an OS picker either, since a specific sourceId is always
+        // supplied here, so falling back to it costs nothing on platforms
+        // where getDisplayMedia already works fine.
+        console.warn(
+          '[live-capture] getDisplayMedia failed, falling back to legacy desktop capture:',
+          err
+        )
+        acquired = await navigator.mediaDevices.getUserMedia({
+          video: {
+            mandatory: {
+              chromeMediaSource: 'desktop',
+              chromeMediaSourceId: sourceId
+            }
+          } as MediaTrackConstraints
+        })
+      }
       const video = document.createElement('video')
       video.muted = true
       video.srcObject = acquired
