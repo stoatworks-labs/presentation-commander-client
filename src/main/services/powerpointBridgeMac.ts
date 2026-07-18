@@ -32,6 +32,23 @@ async function runAppleScript(script: string, args: string[] = []): Promise<stri
   return stdout.trim()
 }
 
+/**
+ * PowerPoint Mac's AppleScript dictionary exposes `slide width` on `page
+ * setup` but — confirmed live — has no `slide height` property at all (nor
+ * any equivalent elsewhere); querying it throws "object does not exist".
+ * A .pptx is a zip, so this reads its own `ppt/presentation.xml` directly
+ * instead, which always carries the real dimensions in `<p:sldSz cx cy>`
+ * (EMUs) — more reliable than depending on a dictionary property that isn't
+ * there, and only the width/height *ratio* is ever used, so the EMU unit
+ * doesn't matter.
+ */
+async function getSlideDimensions(filePath: string): Promise<{ width: number; height: number }> {
+  const { stdout } = await execFileAsync('unzip', ['-p', filePath, 'ppt/presentation.xml'])
+  const match = stdout.match(/<p:sldSz\s+cx="(\d+)"\s+cy="(\d+)"/)
+  if (!match) throw new Error('Could not find slide size in presentation.xml')
+  return { width: parseInt(match[1], 10), height: parseInt(match[2], 10) }
+}
+
 const UNIT_SEP = ''
 const RECORD_SEP = ''
 
@@ -151,10 +168,12 @@ export class PowerPointBridgeMac extends EventEmitter {
       frameFiles.push(framePath)
     }
 
+    const { width: slideWidth, height: slideHeight } = await getSlideDimensions(filePath)
+
     this.lastKnownPage = 1
     this.startPolling()
 
-    return { totalPages, notesBySlide, frameFiles }
+    return { totalPages, notesBySlide, frameFiles, slideWidth, slideHeight }
   }
 
   async goTo(page: number): Promise<void> {

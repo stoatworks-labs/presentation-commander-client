@@ -79,7 +79,9 @@ for ($i = 1; $i -le $slideCount; $i++) {
   $slide.Export("${escapedFramesDir}\\slide-$i.png", "PNG", 1920, 1080)
 }
 $notesJoined = [string]::Join([char]0x1F, $notes)
-Write-Output ($slideCount.ToString() + [char]0x1E + $notesJoined)
+$slideWidth = $pres.PageSetup.SlideWidth
+$slideHeight = $pres.PageSetup.SlideHeight
+Write-Output ($slideCount.ToString() + [char]0x1E + $notesJoined + [char]0x1E + $slideWidth.ToString() + [char]0x1E + $slideHeight.ToString())
 `
 }
 
@@ -122,7 +124,7 @@ export class PowerPointBridgeWindows extends EventEmitter {
 
     const framesDir = await mkdtemp(join(tmpdir(), 'presentation-commander-powerpoint-'))
     const raw = await runPowerShell(openAndReadScript(filePath, framesDir))
-    const [slideCountStr, notesJoined] = raw.split(RECORD_SEP)
+    const [slideCountStr, notesJoined, slideWidthStr, slideHeightStr] = raw.split(RECORD_SEP)
     const totalPages = parseInt(slideCountStr, 10)
     const notes = notesJoined ? notesJoined.split(UNIT_SEP) : []
 
@@ -139,7 +141,13 @@ export class PowerPointBridgeWindows extends EventEmitter {
     this.lastKnownPage = 1
     this.startPolling()
 
-    return { totalPages, notesBySlide, frameFiles }
+    return {
+      totalPages,
+      notesBySlide,
+      frameFiles,
+      slideWidth: parseFloat(slideWidthStr),
+      slideHeight: parseFloat(slideHeightStr)
+    }
   }
 
   async goTo(page: number): Promise<void> {

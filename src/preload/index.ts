@@ -18,6 +18,8 @@ interface OpenKeynoteResult {
   totalPages: number
   notesBySlide: Record<number, string>
   frameFiles: string[]
+  slideWidth: number
+  slideHeight: number
 }
 
 interface OpenPowerPointResult {
@@ -25,6 +27,8 @@ interface OpenPowerPointResult {
   totalPages: number
   notesBySlide: Record<number, string>
   frameFiles: string[]
+  slideWidth: number
+  slideHeight: number
 }
 
 interface DisplayInfo {

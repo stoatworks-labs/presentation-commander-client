@@ -50,6 +50,11 @@ function App(): React.JSX.Element {
   const [nextCaptureActive, setNextCaptureActive] = useState(false)
   const [programCaptureCrop, setProgramCaptureCrop] = useState<CropRect | null>(null)
   const [nextCaptureCrop, setNextCaptureCrop] = useState<CropRect | null>(null)
+  // The deck's own slide aspect ratio (width/height) — lets LiveCaptureControl's
+  // "Detect Regions" feature constrain its search to boxes that actually look
+  // like a slide, instead of guessing blindly. Only Keynote/PowerPoint sources
+  // set this (from the bridge's open() result); null elsewhere.
+  const [slideAspectRatio, setSlideAspectRatio] = useState<number | null>(null)
   const programCaptureHandleRef = useRef(createLiveCapture())
   const nextCaptureHandleRef = useRef(createLiveCapture())
 
@@ -265,6 +270,7 @@ function App(): React.JSX.Element {
     setTotalPages(result.totalPages)
     setCurrentPage(1)
     setNotesBySlide(result.notesBySlide)
+    setSlideAspectRatio(result.slideWidth / result.slideHeight)
   }
 
   const openPowerPoint = async (): Promise<void> => {
@@ -283,6 +289,7 @@ function App(): React.JSX.Element {
     setTotalPages(result.totalPages)
     setCurrentPage(1)
     setNotesBySlide(result.notesBySlide)
+    setSlideAspectRatio(result.slideWidth / result.slideHeight)
   }
 
   const connectGoogleSlides = (): void => {
@@ -367,6 +374,27 @@ function App(): React.JSX.Element {
     setNextCaptureActive(false)
   }
 
+  // Crop is applied at draw time, not capture time (see the push-loop
+  // effects above), so changing it while already active is just a state
+  // update — no need to stop/restart the underlying MediaStream.
+  const recropProgramCapture = (crop: CropRect | null): void => setProgramCaptureCrop(crop)
+  const recropNextCapture = (crop: CropRect | null): void => setNextCaptureCrop(crop)
+
+  // Grabs a full, uncropped snapshot of whatever a capture handle is
+  // currently seeing, for LiveCaptureControl's "Detect Regions" feature to
+  // analyze — independent of that stream's own (possibly already-cropped)
+  // output canvas.
+  const getProgramSnapshot = (): HTMLCanvasElement | null => {
+    const canvas = document.createElement('canvas')
+    return programCaptureHandleRef.current.drawCurrentFrame(canvas, 1920, 1080, null)
+      ? canvas
+      : null
+  }
+  const getNextSnapshot = (): HTMLCanvasElement | null => {
+    const canvas = document.createElement('canvas')
+    return nextCaptureHandleRef.current.drawCurrentFrame(canvas, 1920, 1080, null) ? canvas : null
+  }
+
   const changeNotes = (text: string): void => {
     const next = { ...notesBySlide, [currentPage]: text }
     setNotesBySlide(next)
@@ -394,6 +422,9 @@ function App(): React.JSX.Element {
                 active={programCaptureActive}
                 onStart={startProgramCapture}
                 onStop={stopProgramCapture}
+                onRecrop={recropProgramCapture}
+                getSnapshot={getProgramSnapshot}
+                slideAspectRatio={slideAspectRatio}
               />
               <LiveCaptureControl
                 label="Next Slide"
@@ -401,6 +432,9 @@ function App(): React.JSX.Element {
                 active={nextCaptureActive}
                 onStart={startNextCapture}
                 onStop={stopNextCapture}
+                onRecrop={recropNextCapture}
+                getSnapshot={getNextSnapshot}
+                slideAspectRatio={slideAspectRatio}
               />
             </>
           )}

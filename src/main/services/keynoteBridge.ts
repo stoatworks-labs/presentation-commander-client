@@ -29,7 +29,12 @@ function run(argv) {
   const slides = doc.slides()
   const notes = slides.map((s) => s.presenterNotes())
   doc.export({ to: Path(framesDir), as: 'slide images' })
-  return JSON.stringify({ totalPages: slides.length, notes: notes })
+  return JSON.stringify({
+    totalPages: slides.length,
+    notes: notes,
+    slideWidth: doc.width(),
+    slideHeight: doc.height()
+  })
 }
 `
 
@@ -69,6 +74,9 @@ export interface KeynoteOpenResult {
   notesBySlide: Record<number, string>
   /** Absolute paths to the exported slide PNGs, in slide order (index 0 = slide 1). */
   frameFiles: string[]
+  /** The deck's own slide dimensions (points) — used to constrain region-detection to the slide's real aspect ratio. */
+  slideWidth: number
+  slideHeight: number
 }
 
 /** Sorts by the first number found in each filename, so "2.png" < "10.png" regardless of padding. */
@@ -88,7 +96,12 @@ class KeynoteBridge extends EventEmitter {
     const framesDir = await mkdtemp(join(tmpdir(), 'presentation-commander-keynote-'))
 
     const raw = await runJxa(OPEN_AND_EXPORT_SCRIPT, [filePath, framesDir])
-    const parsed = JSON.parse(raw) as { totalPages: number; notes: string[] }
+    const parsed = JSON.parse(raw) as {
+      totalPages: number
+      notes: string[]
+      slideWidth: number
+      slideHeight: number
+    }
 
     const notesBySlide: Record<number, string> = {}
     parsed.notes.forEach((note, i) => {
@@ -101,7 +114,13 @@ class KeynoteBridge extends EventEmitter {
     this.lastKnownPage = 1
     this.startPolling()
 
-    return { totalPages: parsed.totalPages, notesBySlide, frameFiles }
+    return {
+      totalPages: parsed.totalPages,
+      notesBySlide,
+      frameFiles,
+      slideWidth: parsed.slideWidth,
+      slideHeight: parsed.slideHeight
+    }
   }
 
   async goTo(page: number): Promise<void> {
