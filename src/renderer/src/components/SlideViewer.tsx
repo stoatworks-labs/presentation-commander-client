@@ -13,7 +13,8 @@ function SlideCanvas({
   source,
   pageNumber,
   label,
-  onNavigate
+  onNavigate,
+  onAdvance
 }: {
   source: SlideSource | null
   pageNumber: number | null
@@ -22,6 +23,9 @@ function SlideCanvas({
    * — when present (and the source supports it, e.g. PDF), internal
    * document links become clickable jump-to-page shortcuts. */
   onNavigate?: (page: number) => void
+  /** Only passed for "Next" — clicking anywhere on the preview advances to
+   * it, since it's always exactly one page ahead of "Now". */
+  onAdvance?: () => void
 }): React.JSX.Element {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -64,7 +68,12 @@ function SlideCanvas({
   return (
     <div className="slide-slot">
       <div className="slide-slot-label">{label}</div>
-      <div className="slide-slot-canvas" ref={containerRef}>
+      <div
+        className={`slide-slot-canvas${onAdvance ? ' slide-slot-canvas--clickable' : ''}`}
+        ref={containerRef}
+        onClick={onAdvance}
+        title={onAdvance ? 'Go to this slide' : undefined}
+      >
         {pageNumber ? (
           <div
             className="slide-slot-frame"
@@ -106,7 +115,12 @@ function SlideViewer({ source, currentPage, totalPages, onNavigate }: Props): Re
         label="Now"
         onNavigate={onNavigate}
       />
-      <SlideCanvas source={source} pageNumber={nextPage} label="Next" />
+      <SlideCanvas
+        source={source}
+        pageNumber={nextPage}
+        label="Next"
+        onAdvance={nextPage ? () => onNavigate(nextPage) : undefined}
+      />
     </div>
   )
 }

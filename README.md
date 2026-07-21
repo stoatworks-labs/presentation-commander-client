@@ -77,10 +77,14 @@ desktop app — no PowerPoint or Keynote dependency.
   Presenter Window, mirroring Google Slides' approach
 - **Presenter notes** — per-slide notes, auto-saved to a `.notes.json`
   sidecar file next to the PDF
-- **Transport** — Previous/Next buttons and arrow-key navigation
+- **Transport** — Previous/Next buttons, a clickable "Next" preview, and
+  keyboard navigation (Left/Right, Up/Down, Page Up/Page Down, Space)
 - **Program Out** — a second, fullscreen, chrome-free window showing just
   the current slide, for a projector or confidence monitor. Pick which
-  connected display it opens on from a dropdown next to the button
+  connected display it opens on from a dropdown next to the button. Press
+  `B`/`W` to blank it to solid black/white without losing your place
+  (matches PowerPoint's presenter shortcuts), and an optional checkbox
+  hides the OS cursor over it
 - **NDI Output** — two independent, separately-toggleable NDI video sources
   on the network: **Program Out** (the current slide) and **Next Slide
   NDI** (the upcoming slide, using the same render path as the Now/Next

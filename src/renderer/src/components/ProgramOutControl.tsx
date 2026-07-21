@@ -11,13 +11,15 @@ export interface DisplayInfo {
 
 interface Props {
   disabled: boolean
+  hideCursor: boolean
+  onHideCursorChange: (value: boolean) => void
 }
 
 function preferredDisplay(list: DisplayInfo[]): DisplayInfo | undefined {
   return list.find((d) => !d.primary) ?? list[0]
 }
 
-function ProgramOutControl({ disabled }: Props): React.JSX.Element {
+function ProgramOutControl({ disabled, hideCursor, onHideCursorChange }: Props): React.JSX.Element {
   const [displays, setDisplays] = useState<DisplayInfo[]>([])
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [open, setOpen] = useState(false)
@@ -70,6 +72,14 @@ function ProgramOutControl({ disabled }: Props): React.JSX.Element {
       >
         {open ? 'Close Program Out' : 'Program Out'}
       </button>
+      <label className="program-out-hide-cursor">
+        <input
+          type="checkbox"
+          checked={hideCursor}
+          onChange={(e) => onHideCursorChange(e.target.checked)}
+        />
+        Hide cursor
+      </label>
     </div>
   )
 }

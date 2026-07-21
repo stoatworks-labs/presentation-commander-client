@@ -22,15 +22,26 @@ function ProgramOut(): React.JSX.Element {
 
   useEffect(() => {
     const canvas = canvasRef.current
-    if (!doc || state?.kind !== 'pdf' || !canvas) return
+    if (!doc || state?.kind !== 'pdf' || !canvas || (state.screenBlank ?? 'none') !== 'none') return
     renderPageContain(doc, state.currentPage, canvas, window.innerWidth, window.innerHeight).catch(
       (err) => console.error('Failed to render program-out page', err)
     )
   }, [doc, state])
 
+  const blank = state?.screenBlank ?? 'none'
+
   return (
-    <div className="program-out-shell">
-      {state?.kind === 'pdf' && doc ? (
+    <div
+      className={`program-out-shell${state?.hideCursor ? ' program-out-shell--no-cursor' : ''}`}
+      style={
+        blank === 'black'
+          ? { background: '#000' }
+          : blank === 'white'
+            ? { background: '#fff' }
+            : undefined
+      }
+    >
+      {blank !== 'none' ? null : state?.kind === 'pdf' && doc ? (
         <canvas ref={canvasRef} />
       ) : state?.kind === 'image' ? (
         <img src={state.fileUrl} alt="" />

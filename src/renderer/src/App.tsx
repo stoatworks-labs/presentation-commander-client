@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ConnectionStatus } from '../../shared/protocol'
+import type { ScreenBlank } from '../../shared/programOut'
 import type { SlideSource } from './sources/types'
 import './App.css'
 import { loadPdf } from './pdf'
@@ -39,6 +40,8 @@ function App(): React.JSX.Element {
   const [nextNdiActive, setNextNdiActive] = useState(false)
   const nextNdiCanvasRef = useRef<HTMLCanvasElement>(document.createElement('canvas'))
   const [showGoogleSlidesSetup, setShowGoogleSlidesSetup] = useState(false)
+  const [screenBlank, setScreenBlank] = useState<ScreenBlank>('none')
+  const [hideCursor, setHideCursor] = useState(false)
 
   // Live capture: an alternative, genuinely-live source for the Program/Next
   // NDI streams (real animations/transitions/video, unlike the rest of the
@@ -87,8 +90,12 @@ function App(): React.JSX.Element {
 
   useEffect(() => {
     if (!activeSource || !currentPage) return
-    window.api.programOut.pushState(activeSource.getProgramOutPayload(currentPage))
-  }, [activeSource, currentPage])
+    window.api.programOut.pushState({
+      ...activeSource.getProgramOutPayload(currentPage),
+      screenBlank,
+      hideCursor
+    })
+  }, [activeSource, currentPage, screenBlank, hideCursor])
 
   useEffect(() => {
     window.api.ndiOutput.isActive(NDI_STREAM_PROGRAM).then(setNdiActive)
@@ -234,8 +241,27 @@ function App(): React.JSX.Element {
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent): void => {
-      if (e.key === 'ArrowRight') setCurrentPage((p) => Math.min(p + 1, totalPages || p))
-      if (e.key === 'ArrowLeft') setCurrentPage((p) => Math.max(p - 1, 1))
+      const target = e.target as HTMLElement | null
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) return
+      if (
+        e.key === 'ArrowRight' ||
+        e.key === ' ' ||
+        e.key === 'ArrowDown' ||
+        e.key === 'PageDown'
+      ) {
+        e.preventDefault()
+        setCurrentPage((p) => Math.min(p + 1, totalPages || p))
+      }
+      if (e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'PageUp') {
+        e.preventDefault()
+        setCurrentPage((p) => Math.max(p - 1, 1))
+      }
+      if (e.key === 'b' || e.key === 'B') {
+        setScreenBlank((b) => (b === 'black' ? 'none' : 'black'))
+      }
+      if (e.key === 'w' || e.key === 'W') {
+        setScreenBlank((b) => (b === 'white' ? 'none' : 'white'))
+      }
     }
     window.addEventListener('keydown', handleKey)
     return () => window.removeEventListener('keydown', handleKey)
@@ -438,7 +464,11 @@ function App(): React.JSX.Element {
               />
             </>
           )}
-          <ProgramOutControl disabled={!activeSource} />
+          <ProgramOutControl
+            disabled={!activeSource}
+            hideCursor={hideCursor}
+            onHideCursorChange={setHideCursor}
+          />
           <button className="transport-btn" onClick={openPdf}>
             {filePath ? 'Open Different PDF…' : 'Open PDF…'}
           </button>

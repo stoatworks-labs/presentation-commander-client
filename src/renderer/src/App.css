@@ -32,8 +32,18 @@
 
 .program-out-control {
   display: flex;
+  align-items: center;
   gap: 6px;
   -webkit-app-region: no-drag;
+}
+
+.program-out-hide-cursor {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-2);
+  white-space: nowrap;
 }
 
 .program-out-display-select {
@@ -235,6 +245,10 @@
   max-height: 100%;
 }
 
+.program-out-shell--no-cursor {
+  cursor: none;
+}
+
 .program-out-empty {
   color: var(--text-3);
   font-family: var(--font-mono);
@@ -290,6 +304,15 @@
   border: 1px solid var(--border);
   border-radius: 2px;
   overflow: hidden;
+}
+
+.slide-slot-canvas--clickable {
+  cursor: pointer;
+}
+
+.slide-slot-canvas--clickable:hover {
+  outline: 1px solid var(--accent);
+  outline-offset: -1px;
 }
 
 .slide-slot-frame {
