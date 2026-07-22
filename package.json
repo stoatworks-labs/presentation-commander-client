@@ -1,6 +1,6 @@
 {
   "name": "presentation-commander-client",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Presentation Commander — Client Node, a bespoke PDF presentation engine with a fullscreen Program Out display",
   "main": "./out/main/index.js",
   "author": "Allan Sargeant",
