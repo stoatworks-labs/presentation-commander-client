@@ -17,8 +17,11 @@ import ProgramOutControl from './components/ProgramOutControl'
 import NdiOutputControl from './components/NdiOutputControl'
 import GoogleSlidesSetup from './components/GoogleSlidesSetup'
 import LiveCaptureControl from './components/LiveCaptureControl'
+import OscControl from './components/OscControl'
 import { createLiveCapture } from './liveCapture'
 import type { CropRect } from './liveCapture'
+import { handleOscAction, allFeedback } from './osc/oscpoint'
+import type { OscSnapshot } from './osc/oscpoint'
 
 const NDI_STREAM_PROGRAM = 'program'
 const NDI_STREAM_NEXT = 'next'
@@ -42,6 +45,22 @@ function App(): React.JSX.Element {
   const [showGoogleSlidesSetup, setShowGoogleSlidesSetup] = useState(false)
   const [screenBlank, setScreenBlank] = useState<ScreenBlank>('none')
   const [hideCursor, setHideCursor] = useState(false)
+  const [programOutOpen, setProgramOutOpen] = useState(false)
+  const [oscRunning, setOscRunning] = useState(false)
+  const [oscActionsEnabled, setOscActionsEnabled] = useState(true)
+  const [oscFeedbacksEnabled, setOscFeedbacksEnabled] = useState(true)
+  const oscSnapshotRef = useRef<OscSnapshot>({
+    currentPage: 1,
+    totalPages: 0,
+    notesBySlide: {},
+    fileName: null,
+    filePath: null,
+    sourceKind: null,
+    screenBlank: 'none',
+    programOutOpen: false,
+    actionsEnabled: true,
+    feedbacksEnabled: true
+  })
 
   // Live capture: an alternative, genuinely-live source for the Program/Next
   // NDI streams (real animations/transitions/video, unlike the rest of the
@@ -100,6 +119,73 @@ function App(): React.JSX.Element {
   useEffect(() => {
     window.api.ndiOutput.isActive(NDI_STREAM_PROGRAM).then(setNdiActive)
     window.api.ndiOutput.isActive(NDI_STREAM_NEXT).then(setNextNdiActive)
+  }, [])
+
+  // Program Out's own open/close state is otherwise only tracked locally
+  // inside ProgramOutControl.tsx — mirrored here too since OSC feedback
+  // (slideshow/state) and the /oscpoint/slideshow/start|end actions both
+  // need to read/drive it from here.
+  useEffect(() => {
+    window.api.programOut.isOpen().then(setProgramOutOpen)
+    return window.api.programOut.onOpenChanged(setProgramOutOpen)
+  }, [])
+
+  useEffect(() => {
+    window.api.osc.isRunning().then(setOscRunning)
+    return window.api.osc.onStatusChanged(setOscRunning)
+  }, [])
+
+  // Keeps a ref-mirrored snapshot of everything the OSC action dispatcher
+  // and feedback builders need, and reactively resends feedback whenever
+  // any of it changes — mirrors the existing server:pushSlideState effect
+  // below, just for the OSCPoint wire protocol instead.
+  useEffect(() => {
+    const fileName = filePath ? (filePath.split('/').pop() ?? filePath) : null
+    const snapshot: OscSnapshot = {
+      currentPage,
+      totalPages,
+      notesBySlide,
+      fileName,
+      filePath,
+      sourceKind: activeSource?.kind ?? null,
+      screenBlank,
+      programOutOpen,
+      actionsEnabled: oscActionsEnabled,
+      feedbacksEnabled: oscFeedbacksEnabled
+    }
+    oscSnapshotRef.current = snapshot
+    if (oscRunning && oscFeedbacksEnabled) {
+      allFeedback(snapshot).forEach((m) => window.api.osc.send(m.address, m.args))
+    }
+  }, [
+    currentPage,
+    totalPages,
+    notesBySlide,
+    filePath,
+    activeSource,
+    screenBlank,
+    programOutOpen,
+    oscActionsEnabled,
+    oscFeedbacksEnabled,
+    oscRunning
+  ])
+
+  useEffect(() => {
+    return window.api.osc.onAction((action) => {
+      handleOscAction(action, oscSnapshotRef.current, {
+        goToPage: (page) => setCurrentPage(page),
+        nextPage: () => setCurrentPage((p) => Math.min(p + 1, totalPagesRef.current || p)),
+        previousPage: () => setCurrentPage((p) => Math.max(p - 1, 1)),
+        setScreenBlank: (next) => setScreenBlank(next),
+        openProgramOut: () => window.api.programOut.open(),
+        closeProgramOut: () => window.api.programOut.close(),
+        setActionsEnabled: setOscActionsEnabled,
+        setFeedbacksEnabled: setOscFeedbacksEnabled,
+        refreshFeedback: () => {
+          allFeedback(oscSnapshotRef.current).forEach((m) => window.api.osc.send(m.address, m.args))
+        }
+      })
+    })
   }, [])
 
   useEffect(() => {
@@ -469,6 +555,7 @@ function App(): React.JSX.Element {
             hideCursor={hideCursor}
             onHideCursorChange={setHideCursor}
           />
+          <OscControl />
           <button className="transport-btn" onClick={openPdf}>
             {filePath ? 'Open Different PDF…' : 'Open PDF…'}
           </button>

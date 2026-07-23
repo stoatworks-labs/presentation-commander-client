@@ -12,8 +12,10 @@ import { browserBridge } from './services/browserBridge'
 import type { BrowserSourceApp } from './services/browserBridge'
 import { screenCaptureService } from './services/screenCapture'
 import { getOAuthStatus, setOAuthClientId } from './services/googleSlidesSetup'
+import { oscControlServer } from './services/oscControlServer'
 import type { RegisterMessage, SlideStateMessage } from '../shared/protocol'
 import type { ProgramOutState } from '../shared/programOut'
+import type { OscArg, OscConfig } from '../shared/osc'
 
 interface DisplayInfo {
   id: number
@@ -179,6 +181,14 @@ app.whenReady().then(() => {
   browserBridge.start()
   screenCaptureService.installDisplayMediaHandler()
 
+  oscControlServer.on('action', (action) => mainWindow.webContents.send('osc:action', action))
+  oscControlServer.on('status-changed', (running: boolean) =>
+    mainWindow.webContents.send('osc:status-changed', running)
+  )
+  oscControlServer.loadConfig().then((config) => {
+    if (config.autoStart) oscControlServer.start()
+  })
+
   ipcMain.handle('screen-capture:list-sources', () => screenCaptureService.listSources())
   ipcMain.handle('screen-capture:set-active', (_e, sourceId: string | null) =>
     screenCaptureService.setActiveSource(sourceId)
@@ -305,6 +315,17 @@ app.whenReady().then(() => {
     }
   )
 
+  ipcMain.handle('osc:start', () => oscControlServer.start())
+  ipcMain.handle('osc:stop', () => oscControlServer.stop())
+  ipcMain.handle('osc:is-running', () => oscControlServer.isRunning())
+  ipcMain.handle('osc:get-config', () => oscControlServer.getConfig())
+  ipcMain.handle('osc:set-config', (_e, next: Partial<OscConfig>) =>
+    oscControlServer.setConfig(next)
+  )
+  ipcMain.handle('osc:send', (_e, address: string, args: OscArg[]) =>
+    oscControlServer.send(address, args)
+  )
+
   app.on('activate', function () {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
@@ -313,6 +334,7 @@ app.whenReady().then(() => {
 app.on('window-all-closed', () => {
   serverLink.disconnect()
   ndiSenderService.stopAll()
+  oscControlServer.shutdown()
   if (process.platform !== 'darwin') {
     app.quit()
   }

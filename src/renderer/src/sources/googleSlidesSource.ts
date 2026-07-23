@@ -26,6 +26,29 @@ function loadImage(url: string): Promise<HTMLImageElement> {
   })
 }
 
+/** Resolves once the extension reports an index different from
+ * `beforeIndex`, or after `timeoutMs` — bounds a stuck-tab from hanging a
+ * multi-step goTo() forever. */
+function waitForIndexChange(
+  handle: BrowserBridgeHandle,
+  beforeIndex: number,
+  timeoutMs: number
+): Promise<void> {
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => {
+      unsubscribe()
+      resolve()
+    }, timeoutMs)
+    const unsubscribe = handle.onSlideUpdate((update) => {
+      if (update.app === 'google-slides' && update.index !== null && update.index !== beforeIndex) {
+        clearTimeout(timer)
+        unsubscribe()
+        resolve()
+      }
+    })
+  })
+}
+
 /**
  * SlideSource backed by the Google Slides browser extension (extension/) —
  * see main/services/browserBridge.ts for the local WebSocket side. Unlike
@@ -53,9 +76,20 @@ export function createGoogleSlidesSource(handle: BrowserBridgeHandle): SlideSour
       if (!ctx) return
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
     },
-    goTo(page) {
-      if (!latest?.index || page === latest.index) return Promise.resolve()
-      return handle.navigate(page > latest.index ? 'next' : 'previous', 'google-slides')
+    async goTo(page) {
+      // The extension only exposes single-step next/previous, not an
+      // arbitrary jump — step repeatedly toward the target, waiting for the
+      // extension to actually confirm each step (not just for the navigate
+      // IPC call to complete) before sending the next one. Capped well
+      // above any real deck size as a safety guard against runaway loops if
+      // `latest.index` ever stops updating mid-navigation.
+      const MAX_STEPS = 1000
+      for (let steps = 0; steps < MAX_STEPS; steps++) {
+        if (!latest?.index || page === latest.index) return
+        const beforeIndex = latest.index
+        await handle.navigate(page > latest.index ? 'next' : 'previous', 'google-slides')
+        await waitForIndexChange(handle, beforeIndex, 1500)
+      }
     },
     onExternalPageChange(callback) {
       return handle.onSlideUpdate((update) => {

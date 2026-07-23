@@ -24,6 +24,7 @@
     "@electron-toolkit/preload": "^3.0.2",
     "@electron-toolkit/utils": "^4.0.0",
     "ndi-send": "file:./native/ndi-send",
+    "osc-min": "^2.1.2",
     "pdfjs-dist": "^4.10.38",
     "ws": "^8.21.0"
   },
