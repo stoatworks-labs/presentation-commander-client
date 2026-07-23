@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { PDFDocumentProxy } from 'pdfjs-dist'
-import type { ProgramOutState } from '../../shared/programOut'
+import type { ProgramOutState, LaserPosition } from '../../shared/programOut'
 import './App.css'
 import { loadPdf, renderPageContain } from './pdf'
 
@@ -8,6 +8,7 @@ function ProgramOut(): React.JSX.Element {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [doc, setDoc] = useState<PDFDocumentProxy | null>(null)
   const [state, setState] = useState<ProgramOutState | null>(null)
+  const [laserPosition, setLaserPosition] = useState<LaserPosition | null>(null)
   const lastPdfDataRef = useRef<string | null>(null)
 
   useEffect(() => {
@@ -21,6 +22,10 @@ function ProgramOut(): React.JSX.Element {
   }, [])
 
   useEffect(() => {
+    return window.api.programOut.onLaserPosition(setLaserPosition)
+  }, [])
+
+  useEffect(() => {
     const canvas = canvasRef.current
     if (!doc || state?.kind !== 'pdf' || !canvas || (state.screenBlank ?? 'none') !== 'none') return
     renderPageContain(doc, state.currentPage, canvas, window.innerWidth, window.innerHeight).catch(
@@ -29,6 +34,7 @@ function ProgramOut(): React.JSX.Element {
   }, [doc, state])
 
   const blank = state?.screenBlank ?? 'none'
+  const showLaser = state?.laserPointerEnabled && blank === 'none' && laserPosition
 
   return (
     <div
@@ -42,9 +48,25 @@ function ProgramOut(): React.JSX.Element {
       }
     >
       {blank !== 'none' ? null : state?.kind === 'pdf' && doc ? (
-        <canvas ref={canvasRef} />
+        <div className="program-out-canvas-frame">
+          <canvas ref={canvasRef} />
+          {showLaser && (
+            <div
+              className="laser-dot"
+              style={{ left: `${laserPosition.xPct}%`, top: `${laserPosition.yPct}%` }}
+            />
+          )}
+        </div>
       ) : state?.kind === 'image' ? (
-        <img src={state.fileUrl} alt="" />
+        <div className="program-out-canvas-frame">
+          <img src={state.fileUrl} alt="" />
+          {showLaser && (
+            <div
+              className="laser-dot"
+              style={{ left: `${laserPosition.xPct}%`, top: `${laserPosition.yPct}%` }}
+            />
+          )}
+        </div>
       ) : (
         <div className="program-out-empty">No Program</div>
       )}

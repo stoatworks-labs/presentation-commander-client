@@ -25,6 +25,7 @@ export interface OscSnapshot {
   filesFolderRelative: string | null
   filesFolderFullPath: string | null
   sections: OscSection[]
+  laserPointerEnabled: boolean
 }
 
 export interface OscHandlers {
@@ -34,6 +35,7 @@ export interface OscHandlers {
   setScreenBlank(next: ScreenBlank): void
   openProgramOut(): void
   closeProgramOut(): void
+  setLaserPointerEnabled(enabled: boolean): void
   setActionsEnabled(enabled: boolean): void
   setFeedbacksEnabled(enabled: boolean): void
   /** Resend the full current feedback state right now — used both for the
@@ -276,6 +278,11 @@ export function handleOscAction(
     case '/oscpoint/slideshow/white':
       handlers.setScreenBlank(resolveBlankToggle(args[0], 'white', snapshot.screenBlank))
       return
+    case '/oscpoint/slideshow/laserpointer': {
+      const on = argToBoolean(args[0])
+      handlers.setLaserPointerEnabled(on === undefined ? !snapshot.laserPointerEnabled : on)
+      return
+    }
     case '/oscpoint/files/setpath': {
       if (!snapshot.filesEnabled) return
       const path = argToString(args[0])

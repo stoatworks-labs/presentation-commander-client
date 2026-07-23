@@ -15,7 +15,7 @@ import { getOAuthStatus, setOAuthClientId } from './services/googleSlidesSetup'
 import { oscControlServer } from './services/oscControlServer'
 import { fileControl } from './services/fileControl'
 import type { RegisterMessage, SlideStateMessage } from '../shared/protocol'
-import type { ProgramOutState } from '../shared/programOut'
+import type { ProgramOutState, LaserPosition } from '../shared/programOut'
 import type { OscArg, OscConfig } from '../shared/osc'
 
 interface DisplayInfo {
@@ -287,6 +287,13 @@ app.whenReady().then(() => {
   ipcMain.handle('program-out:push-state', (_e, state: ProgramOutState) => {
     latestProgramOutState = state
     programOutWindow?.webContents.send('program-out:state', state)
+  })
+  // High-frequency (mousemove-driven) — deliberately not persisted like
+  // latestProgramOutState above, since replaying a stale position to a
+  // freshly-opened Program Out window has no value (the presenter's mouse
+  // has long since moved on).
+  ipcMain.handle('program-out:push-laser-position', (_e, position: LaserPosition | null) => {
+    programOutWindow?.webContents.send('program-out:laser-position', position)
   })
 
   screen.on('display-added', () =>

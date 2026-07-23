@@ -54,6 +54,7 @@ function App(): React.JSX.Element {
   const [filesFolderRelative, setFilesFolderRelative] = useState<string | null>(null)
   const [filesFolderFullPath, setFilesFolderFullPath] = useState<string | null>(null)
   const [sections, setSections] = useState<OscSection[]>([])
+  const [laserPointerEnabled, setLaserPointerEnabled] = useState(false)
   const oscSnapshotRef = useRef<OscSnapshot>({
     currentPage: 1,
     totalPages: 0,
@@ -68,7 +69,8 @@ function App(): React.JSX.Element {
     filesEnabled: false,
     filesFolderRelative: null,
     filesFolderFullPath: null,
-    sections: []
+    sections: [],
+    laserPointerEnabled: false
   })
 
   // Live capture: an alternative, genuinely-live source for the Program/Next
@@ -121,9 +123,10 @@ function App(): React.JSX.Element {
     window.api.programOut.pushState({
       ...activeSource.getProgramOutPayload(currentPage),
       screenBlank,
-      hideCursor
+      hideCursor,
+      laserPointerEnabled
     })
-  }, [activeSource, currentPage, screenBlank, hideCursor])
+  }, [activeSource, currentPage, screenBlank, hideCursor, laserPointerEnabled])
 
   useEffect(() => {
     window.api.ndiOutput.isActive(NDI_STREAM_PROGRAM).then(setNdiActive)
@@ -179,7 +182,8 @@ function App(): React.JSX.Element {
       filesEnabled,
       filesFolderRelative,
       filesFolderFullPath,
-      sections
+      sections,
+      laserPointerEnabled
     }
     oscSnapshotRef.current = snapshot
     if (oscRunning && oscFeedbacksEnabled) {
@@ -199,6 +203,7 @@ function App(): React.JSX.Element {
     filesFolderRelative,
     filesFolderFullPath,
     sections,
+    laserPointerEnabled,
     oscRunning
   ])
 
@@ -283,6 +288,7 @@ function App(): React.JSX.Element {
         setScreenBlank: (next) => setScreenBlank(next),
         openProgramOut: () => window.api.programOut.open(),
         closeProgramOut: () => window.api.programOut.close(),
+        setLaserPointerEnabled,
         setActionsEnabled: setOscActionsEnabled,
         setFeedbacksEnabled: setOscFeedbacksEnabled,
         refreshFeedback: () => {
@@ -711,6 +717,11 @@ function App(): React.JSX.Element {
             currentPage={currentPage}
             totalPages={totalPages}
             onNavigate={setCurrentPage}
+            onPointerPosition={
+              laserPointerEnabled
+                ? (pos) => window.api.programOut.pushLaserPosition(pos)
+                : undefined
+            }
           />
           <Transport
             currentPage={currentPage}

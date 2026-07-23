@@ -6,7 +6,7 @@ import type {
   RemoteCommandMessage,
   SlideStateMessage
 } from '../shared/protocol'
-import type { ProgramOutState } from '../shared/programOut'
+import type { ProgramOutState, LaserPosition } from '../shared/programOut'
 import type { OscArg, OscAction, OscConfig } from '../shared/osc'
 import type { FileControlConfig } from '../shared/files'
 import type { OscSection } from '../shared/sections'
@@ -198,6 +198,16 @@ const api = {
       ipcRenderer.on('program-out:state', listener)
       return (): void => {
         ipcRenderer.removeListener('program-out:state', listener)
+      }
+    },
+    pushLaserPosition: (position: LaserPosition | null): Promise<void> =>
+      ipcRenderer.invoke('program-out:push-laser-position', position),
+    onLaserPosition: (callback: (position: LaserPosition | null) => void) => {
+      const listener = (_e: Electron.IpcRendererEvent, position: LaserPosition | null): void =>
+        callback(position)
+      ipcRenderer.on('program-out:laser-position', listener)
+      return (): void => {
+        ipcRenderer.removeListener('program-out:laser-position', listener)
       }
     }
   },

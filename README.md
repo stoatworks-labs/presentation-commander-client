@@ -113,7 +113,11 @@ desktop app — no PowerPoint or Keynote dependency.
   (`goto/section`) are mapped from a PDF's own outline/bookmarks, or from
   PowerPoint's native COM `SectionProperties` on Windows — Keynote,
   Google Slides, Canva, and PowerPoint on Mac have no native section
-  concept to map from, so they report none rather than fabricating one
+  concept to map from, so they report none rather than fabricating one.
+  `/oscpoint/slideshow/laserpointer` mirrors the presenter's mouse
+  position over the "Now" preview onto Program Out as a glowing dot,
+  matching PowerPoint's own laser-pointer feature — source-agnostic,
+  since it's purely a display overlay independent of slide content
 
 ## Architecture
 
