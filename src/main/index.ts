@@ -14,6 +14,7 @@ import { screenCaptureService } from './services/screenCapture'
 import { getOAuthStatus, setOAuthClientId } from './services/googleSlidesSetup'
 import { oscControlServer } from './services/oscControlServer'
 import { fileControl } from './services/fileControl'
+import { setWallpaper } from './services/wallpaper'
 import type { RegisterMessage, SlideStateMessage } from '../shared/protocol'
 import type { ProgramOutState, LaserPosition } from '../shared/programOut'
 import type { OscArg, OscConfig } from '../shared/osc'
@@ -337,6 +338,10 @@ app.whenReady().then(() => {
   )
   ipcMain.handle('osc:send', (_e, address: string, args: OscArg[]) =>
     oscControlServer.send(address, args)
+  )
+
+  ipcMain.handle('wallpaper:set', (_e, base64Png: string) =>
+    setWallpaper(Buffer.from(base64Png, 'base64'))
   )
 
   ipcMain.handle('files:get-config', () => fileControl.getConfig())

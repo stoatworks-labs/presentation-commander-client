@@ -40,6 +40,9 @@ export interface OscHandlers {
   openProgramOut(): void
   closeProgramOut(): void
   setLaserPointerEnabled(enabled: boolean): void
+  /** Renders whatever's on screen right now to width x height (default
+   * 1920x1080 if either is omitted) and sets it as the desktop wallpaper. */
+  setWallpaper(width?: number, height?: number): void
   setActionsEnabled(enabled: boolean): void
   setFeedbacksEnabled(enabled: boolean): void
   /** All four call through to the same underlying toggle on every source
@@ -306,6 +309,9 @@ export function handleOscAction(
       handlers.setLaserPointerEnabled(on === undefined ? !snapshot.laserPointerEnabled : on)
       return
     }
+    case '/oscpoint/slideshow/setwallpaper':
+      handlers.setWallpaper(argToNumber(args[0]), argToNumber(args[1]))
+      return
     case '/oscpoint/files/setpath': {
       if (!snapshot.filesEnabled) return
       const path = argToString(args[0])

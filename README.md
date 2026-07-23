@@ -125,7 +125,12 @@ desktop app — no PowerPoint or Keynote dependency.
   shortcut toggle under the hood, since PowerPoint's COM object model has
   no direct play/pause method. Not available anywhere else: confirmed via
   direct inspection of both Keynote's and PowerPoint-for-Mac's scripting
-  dictionaries that neither exposes any playback control at all
+  dictionaries that neither exposes any playback control at all.
+  `/oscpoint/slideshow/setwallpaper` renders whatever's currently on
+  screen and sets it as the desktop wallpaper on every connected monitor
+  — source-agnostic (works for every source type via the same
+  `renderFrame` every SlideSource already implements). macOS and Windows
+  are fully covered, Linux is GNOME-only
 
 ## Architecture
 

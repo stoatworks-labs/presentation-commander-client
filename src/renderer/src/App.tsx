@@ -292,14 +292,16 @@ function App(): React.JSX.Element {
     applyPdfResult,
     applyKeynoteResult,
     applyPowerPointResult,
-    activeSource
+    activeSource,
+    currentPage
   })
   useEffect(() => {
     applyResultRef.current = {
       applyPdfResult,
       applyKeynoteResult,
       applyPowerPointResult,
-      activeSource
+      activeSource,
+      currentPage
     }
   })
 
@@ -313,6 +315,18 @@ function App(): React.JSX.Element {
         openProgramOut: () => window.api.programOut.open(),
         closeProgramOut: () => window.api.programOut.close(),
         setLaserPointerEnabled,
+        setWallpaper: (width, height) => {
+          const { activeSource, currentPage } = applyResultRef.current
+          if (!activeSource) return
+          const canvas = document.createElement('canvas')
+          activeSource
+            .renderFrame(currentPage, canvas, width ?? 1920, height ?? 1080)
+            .then(() => {
+              const dataUrl = canvas.toDataURL('image/png')
+              window.api.wallpaper.set(dataUrl.split(',')[1])
+            })
+            .catch((err) => console.error('Failed to render wallpaper frame', err))
+        },
         mediaPlay: () => applyResultRef.current.activeSource?.mediaPlay?.(),
         mediaPause: () => applyResultRef.current.activeSource?.mediaPause?.(),
         mediaPlayPause: () => applyResultRef.current.activeSource?.mediaPlay?.(),
