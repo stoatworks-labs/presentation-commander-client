@@ -5,6 +5,7 @@ import { tmpdir } from 'os'
 import { join } from 'path'
 import { EventEmitter } from 'events'
 import type { PowerPointOpenResult } from './powerpointBridgeTypes'
+import type { OscSection } from '../../shared/sections'
 
 const execFileAsync = promisify(execFile)
 
@@ -81,7 +82,18 @@ for ($i = 1; $i -le $slideCount; $i++) {
 $notesJoined = [string]::Join([char]0x1F, $notes)
 $slideWidth = $pres.PageSetup.SlideWidth
 $slideHeight = $pres.PageSetup.SlideHeight
-Write-Output ($slideCount.ToString() + [char]0x1E + $notesJoined + [char]0x1E + $slideWidth.ToString() + [char]0x1E + $slideHeight.ToString())
+$sectionParts = New-Object System.Collections.Generic.List[string]
+try {
+  $sectionCount = $pres.SectionProperties.Count
+  for ($s = 1; $s -le $sectionCount; $s++) {
+    $secName = $pres.SectionProperties.Name($s)
+    $secFirst = $pres.SectionProperties.FirstSlide($s)
+    $secCount = $pres.SectionProperties.SlidesCount($s)
+    $sectionParts.Add('{"name":' + ($secName | ConvertTo-Json -Compress) + ',"firstSlide":' + $secFirst + ',"lastSlide":' + ($secFirst + $secCount - 1) + ',"slideCount":' + $secCount + '}')
+  }
+} catch {}
+$sectionsJson = '[' + ([string]::Join(',', $sectionParts)) + ']'
+Write-Output ($slideCount.ToString() + [char]0x1E + $notesJoined + [char]0x1E + $slideWidth.ToString() + [char]0x1E + $slideHeight.ToString() + [char]0x1E + $sectionsJson)
 `
 }
 
@@ -124,9 +136,16 @@ export class PowerPointBridgeWindows extends EventEmitter {
 
     const framesDir = await mkdtemp(join(tmpdir(), 'presentation-commander-powerpoint-'))
     const raw = await runPowerShell(openAndReadScript(filePath, framesDir))
-    const [slideCountStr, notesJoined, slideWidthStr, slideHeightStr] = raw.split(RECORD_SEP)
+    const [slideCountStr, notesJoined, slideWidthStr, slideHeightStr, sectionsJson] =
+      raw.split(RECORD_SEP)
     const totalPages = parseInt(slideCountStr, 10)
     const notes = notesJoined ? notesJoined.split(UNIT_SEP) : []
+    let sections: OscSection[] = []
+    try {
+      sections = sectionsJson ? JSON.parse(sectionsJson) : []
+    } catch (err) {
+      console.error('[powerpoint-bridge-win] Failed to parse sections JSON:', err)
+    }
 
     const notesBySlide: Record<number, string> = {}
     notes.forEach((note, i) => {
@@ -146,7 +165,8 @@ export class PowerPointBridgeWindows extends EventEmitter {
       notesBySlide,
       frameFiles,
       slideWidth: parseFloat(slideWidthStr),
-      slideHeight: parseFloat(slideHeightStr)
+      slideHeight: parseFloat(slideHeightStr),
+      sections
     }
   }
 

@@ -1,6 +1,7 @@
 import * as pdfjsLib from 'pdfjs-dist'
 import PdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?worker'
 import type { PDFDocumentProxy, RenderTask } from 'pdfjs-dist'
+import type { OscSection } from '../../shared/sections'
 
 pdfjsLib.GlobalWorkerOptions.workerPort = new PdfWorker()
 
@@ -168,4 +169,43 @@ export async function getPageLinks(
   }
 
   return { aspectRatio: viewport.width / viewport.height, links }
+}
+
+/**
+ * Maps a PDF's top-level outline (bookmarks/table of contents) onto
+ * OSCPoint's "section" concept — the closest analogue a PDF has, since
+ * PDFs have no native section feature of their own. Only the top level is
+ * used (nested sub-bookmarks would make "which section is slide N in"
+ * ambiguous); entries with an unresolvable destination are skipped rather
+ * than failing the whole list.
+ */
+export async function getSections(doc: PDFDocumentProxy): Promise<OscSection[]> {
+  const outline = await doc.getOutline()
+  if (!outline || outline.length === 0) return []
+
+  const resolved: { name: string; page: number }[] = []
+  for (const item of outline) {
+    if (!item.dest) continue
+    try {
+      const destArray =
+        typeof item.dest === 'string' ? await doc.getDestination(item.dest) : item.dest
+      if (!Array.isArray(destArray) || !destArray[0]) continue
+      const page = (await doc.getPageIndex(destArray[0])) + 1
+      resolved.push({ name: item.title, page })
+    } catch {
+      // Malformed or unsupported destination — skip this entry.
+    }
+  }
+  if (resolved.length === 0) return []
+
+  const totalPages = doc.numPages
+  return resolved.map((entry, i) => {
+    const lastSlide = i + 1 < resolved.length ? resolved[i + 1].page - 1 : totalPages
+    return {
+      name: entry.name,
+      firstSlide: entry.page,
+      lastSlide: Math.max(lastSlide, entry.page),
+      slideCount: Math.max(lastSlide, entry.page) - entry.page + 1
+    }
+  })
 }

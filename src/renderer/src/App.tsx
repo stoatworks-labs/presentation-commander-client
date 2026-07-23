@@ -22,6 +22,7 @@ import { createLiveCapture } from './liveCapture'
 import type { CropRect } from './liveCapture'
 import { handleOscAction, allFeedback } from './osc/oscpoint'
 import type { OscSnapshot } from './osc/oscpoint'
+import type { OscSection } from '../../shared/sections'
 
 const NDI_STREAM_PROGRAM = 'program'
 const NDI_STREAM_NEXT = 'next'
@@ -52,6 +53,7 @@ function App(): React.JSX.Element {
   const [filesEnabled, setFilesEnabled] = useState(false)
   const [filesFolderRelative, setFilesFolderRelative] = useState<string | null>(null)
   const [filesFolderFullPath, setFilesFolderFullPath] = useState<string | null>(null)
+  const [sections, setSections] = useState<OscSection[]>([])
   const oscSnapshotRef = useRef<OscSnapshot>({
     currentPage: 1,
     totalPages: 0,
@@ -65,7 +67,8 @@ function App(): React.JSX.Element {
     feedbacksEnabled: true,
     filesEnabled: false,
     filesFolderRelative: null,
-    filesFolderFullPath: null
+    filesFolderFullPath: null,
+    sections: []
   })
 
   // Live capture: an alternative, genuinely-live source for the Program/Next
@@ -149,6 +152,13 @@ function App(): React.JSX.Element {
     })
   }, [])
 
+  // Sections are static per-document content (PDF outline / PowerPoint COM
+  // SectionProperties captured at open time), so they're only reloaded
+  // when the active source itself changes — not on every page change.
+  useEffect(() => {
+    Promise.resolve(activeSource?.getSections ? activeSource.getSections() : []).then(setSections)
+  }, [activeSource])
+
   // Keeps a ref-mirrored snapshot of everything the OSC action dispatcher
   // and feedback builders need, and reactively resends feedback whenever
   // any of it changes — mirrors the existing server:pushSlideState effect
@@ -168,7 +178,8 @@ function App(): React.JSX.Element {
       feedbacksEnabled: oscFeedbacksEnabled,
       filesEnabled,
       filesFolderRelative,
-      filesFolderFullPath
+      filesFolderFullPath,
+      sections
     }
     oscSnapshotRef.current = snapshot
     if (oscRunning && oscFeedbacksEnabled) {
@@ -187,6 +198,7 @@ function App(): React.JSX.Element {
     filesEnabled,
     filesFolderRelative,
     filesFolderFullPath,
+    sections,
     oscRunning
   ])
 
@@ -232,12 +244,14 @@ function App(): React.JSX.Element {
     frameFiles: string[]
     slideWidth: number
     slideHeight: number
+    sections: OscSection[]
   }): void => {
     activeSource?.dispose()
     setFilePath(result.filePath)
     setActiveSource(
       createPowerPointSource({
         frameFiles: result.frameFiles,
+        sections: result.sections,
         goTo: window.api.powerpoint.goTo,
         onCurrentSlideChanged: window.api.powerpoint.onCurrentSlideChanged,
         close: window.api.powerpoint.close

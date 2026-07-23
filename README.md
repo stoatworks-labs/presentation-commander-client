@@ -109,7 +109,11 @@ desktop app — no PowerPoint or Keynote dependency.
   Windows COM add-in, it works on every platform this app ships for. An
   optional, off-by-default "watched folder" feature lets OSC open a
   specific PDF/Keynote/PowerPoint file by filename without a dialog —
-  useful for a button wall that loads a specific deck on cue
+  useful for a button wall that loads a specific deck on cue. Sections
+  (`goto/section`) are mapped from a PDF's own outline/bookmarks, or from
+  PowerPoint's native COM `SectionProperties` on Windows — Keynote,
+  Google Slides, Canva, and PowerPoint on Mac have no native section
+  concept to map from, so they report none rather than fabricating one
 
 ## Architecture
 

@@ -1,6 +1,6 @@
 import type { PDFDocumentProxy } from 'pdfjs-dist'
 import type { SlideSource } from './types'
-import { renderPageContain, getPageLinks } from '../pdf'
+import { renderPageContain, getPageLinks, getSections } from '../pdf'
 
 /** Thin SlideSource adapter around the existing pdf.js rendering path — no behavior change. */
 export function createPdfSource(doc: PDFDocumentProxy, pdfData: string): SlideSource {
@@ -11,6 +11,9 @@ export function createPdfSource(doc: PDFDocumentProxy, pdfData: string): SlideSo
     },
     getLinks(page) {
       return getPageLinks(doc, page)
+    },
+    getSections() {
+      return getSections(doc)
     },
     goTo() {
       return Promise.resolve()

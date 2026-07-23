@@ -1,4 +1,5 @@
 import type { ProgramOutState } from '../../../shared/programOut'
+import type { OscSection } from '../../../shared/sections'
 import type { PageLinksResult } from '../pdf'
 
 /**
@@ -44,6 +45,16 @@ export interface SlideSource {
    * concept doesn't apply, e.g. Keynote/PowerPoint/Google Slides/Canva.
    */
   getLinks?(page: number): Promise<PageLinksResult>
+
+  /**
+   * OSCPoint's "section" concept, mapped from whatever the underlying
+   * source has a native equivalent of. Omitted entirely for sources with
+   * no such concept (Keynote, Google Slides, Canva, and PowerPoint on Mac
+   * — see shared/sections.ts) rather than returning an empty array, so
+   * the dispatcher can tell "no sections exist" apart from "this source
+   * doesn't support sections at all" if that distinction ever matters.
+   */
+  getSections?(): Promise<OscSection[]>
 
   dispose(): void
 }

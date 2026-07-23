@@ -9,6 +9,7 @@ import type {
 import type { ProgramOutState } from '../shared/programOut'
 import type { OscArg, OscAction, OscConfig } from '../shared/osc'
 import type { FileControlConfig } from '../shared/files'
+import type { OscSection } from '../shared/sections'
 
 interface OpenPdfResult {
   filePath: string
@@ -31,6 +32,7 @@ interface OpenPowerPointResult {
   frameFiles: string[]
   slideWidth: number
   slideHeight: number
+  sections: OscSection[]
 }
 
 type OpenByNameResult =

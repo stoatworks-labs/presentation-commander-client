@@ -1,4 +1,5 @@
 import type { ProgramOutState } from '../../../shared/programOut'
+import type { OscSection } from '../../../shared/sections'
 import type { SlideSource } from './types'
 
 function toFileUrl(absPath: string): string {
@@ -17,6 +18,10 @@ function loadImage(url: string): Promise<HTMLImageElement> {
 /** The subset of window.api.powerpoint a PowerPointSource needs — kept separate so App.tsx owns the IPC calls. */
 export interface PowerPointHandle {
   frameFiles: string[]
+  /** Captured once at open time (Windows COM SectionProperties; always
+   * empty on Mac) — not live-polled, since a presenter editing sections
+   * mid-show is an acceptable gap for what this app is actually for. */
+  sections: OscSection[]
   goTo(page: number): Promise<void>
   onCurrentSlideChanged(callback: (page: number) => void): () => void
   close(): Promise<void>
@@ -54,6 +59,9 @@ export function createPowerPointSource(handle: PowerPointHandle): SlideSource {
     },
     getProgramOutPayload(page): ProgramOutState {
       return { kind: 'image', fileUrl: toFileUrl(handle.frameFiles[page - 1]), currentPage: page }
+    },
+    async getSections() {
+      return handle.sections
     },
     dispose() {
       handle.close().catch((err) => console.error('Failed to close PowerPoint source', err))

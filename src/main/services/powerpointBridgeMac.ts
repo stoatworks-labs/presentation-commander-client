@@ -173,7 +173,11 @@ export class PowerPointBridgeMac extends EventEmitter {
     this.lastKnownPage = 1
     this.startPolling()
 
-    return { totalPages, notesBySlide, frameFiles, slideWidth, slideHeight }
+    // PowerPoint for Mac's AppleScript dictionary doesn't expose sections
+    // the way Windows COM's SectionProperties does — no native section
+    // concept is scriptable here, so this always reports none rather than
+    // fabricating groupings.
+    return { totalPages, notesBySlide, frameFiles, slideWidth, slideHeight, sections: [] }
   }
 
   async goTo(page: number): Promise<void> {
