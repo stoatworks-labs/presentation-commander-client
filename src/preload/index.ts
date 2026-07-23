@@ -8,6 +8,7 @@ import type {
 } from '../shared/protocol'
 import type { ProgramOutState } from '../shared/programOut'
 import type { OscArg, OscAction, OscConfig } from '../shared/osc'
+import type { FileControlConfig } from '../shared/files'
 
 interface OpenPdfResult {
   filePath: string
@@ -31,6 +32,11 @@ interface OpenPowerPointResult {
   slideWidth: number
   slideHeight: number
 }
+
+type OpenByNameResult =
+  | ({ kind: 'pdf' } & OpenPdfResult)
+  | ({ kind: 'keynote' } & OpenKeynoteResult)
+  | ({ kind: 'powerpoint' } & OpenPowerPointResult)
 
 interface DisplayInfo {
   id: number
@@ -223,6 +229,17 @@ const api = {
         ipcRenderer.removeListener('osc:status-changed', listener)
       }
     }
+  },
+  files: {
+    getConfig: (): Promise<FileControlConfig> => ipcRenderer.invoke('files:get-config'),
+    setEnabled: (enabled: boolean): Promise<FileControlConfig> =>
+      ipcRenderer.invoke('files:set-enabled', enabled),
+    setFolderRelative: (relativePath: string): Promise<FileControlConfig> =>
+      ipcRenderer.invoke('files:set-folder-relative', relativePath),
+    chooseFolder: (): Promise<FileControlConfig> => ipcRenderer.invoke('files:choose-folder'),
+    list: (): Promise<string[]> => ipcRenderer.invoke('files:list'),
+    open: (filename: string): Promise<OpenByNameResult | null> =>
+      ipcRenderer.invoke('files:open', filename)
   }
 }
 

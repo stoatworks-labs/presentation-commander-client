@@ -49,6 +49,9 @@ function App(): React.JSX.Element {
   const [oscRunning, setOscRunning] = useState(false)
   const [oscActionsEnabled, setOscActionsEnabled] = useState(true)
   const [oscFeedbacksEnabled, setOscFeedbacksEnabled] = useState(true)
+  const [filesEnabled, setFilesEnabled] = useState(false)
+  const [filesFolderRelative, setFilesFolderRelative] = useState<string | null>(null)
+  const [filesFolderFullPath, setFilesFolderFullPath] = useState<string | null>(null)
   const oscSnapshotRef = useRef<OscSnapshot>({
     currentPage: 1,
     totalPages: 0,
@@ -59,7 +62,10 @@ function App(): React.JSX.Element {
     screenBlank: 'none',
     programOutOpen: false,
     actionsEnabled: true,
-    feedbacksEnabled: true
+    feedbacksEnabled: true,
+    filesEnabled: false,
+    filesFolderRelative: null,
+    filesFolderFullPath: null
   })
 
   // Live capture: an alternative, genuinely-live source for the Program/Next
@@ -135,6 +141,14 @@ function App(): React.JSX.Element {
     return window.api.osc.onStatusChanged(setOscRunning)
   }, [])
 
+  useEffect(() => {
+    window.api.files.getConfig().then((config) => {
+      setFilesEnabled(config.enabled)
+      setFilesFolderRelative(config.relativeToHome)
+      setFilesFolderFullPath(config.folderPath)
+    })
+  }, [])
+
   // Keeps a ref-mirrored snapshot of everything the OSC action dispatcher
   // and feedback builders need, and reactively resends feedback whenever
   // any of it changes — mirrors the existing server:pushSlideState effect
@@ -151,7 +165,10 @@ function App(): React.JSX.Element {
       screenBlank,
       programOutOpen,
       actionsEnabled: oscActionsEnabled,
-      feedbacksEnabled: oscFeedbacksEnabled
+      feedbacksEnabled: oscFeedbacksEnabled,
+      filesEnabled,
+      filesFolderRelative,
+      filesFolderFullPath
     }
     oscSnapshotRef.current = snapshot
     if (oscRunning && oscFeedbacksEnabled) {
@@ -167,8 +184,81 @@ function App(): React.JSX.Element {
     programOutOpen,
     oscActionsEnabled,
     oscFeedbacksEnabled,
+    filesEnabled,
+    filesFolderRelative,
+    filesFolderFullPath,
     oscRunning
   ])
+
+  const applyPdfResult = async (result: { filePath: string; data: string }): Promise<void> => {
+    const doc = await loadPdf(result.data)
+    const notes = await window.api.notes.load(result.filePath)
+    activeSource?.dispose()
+    setFilePath(result.filePath)
+    setActiveSource(createPdfSource(doc, result.data))
+    setTotalPages(doc.numPages)
+    setCurrentPage(1)
+    setNotesBySlide(notes)
+  }
+
+  const applyKeynoteResult = (result: {
+    filePath: string
+    totalPages: number
+    notesBySlide: Record<number, string>
+    frameFiles: string[]
+    slideWidth: number
+    slideHeight: number
+  }): void => {
+    activeSource?.dispose()
+    setFilePath(result.filePath)
+    setActiveSource(
+      createKeynoteSource({
+        frameFiles: result.frameFiles,
+        goTo: window.api.keynote.goTo,
+        onCurrentSlideChanged: window.api.keynote.onCurrentSlideChanged,
+        close: window.api.keynote.close
+      })
+    )
+    setTotalPages(result.totalPages)
+    setCurrentPage(1)
+    setNotesBySlide(result.notesBySlide)
+    setSlideAspectRatio(result.slideWidth / result.slideHeight)
+  }
+
+  const applyPowerPointResult = (result: {
+    filePath: string
+    totalPages: number
+    notesBySlide: Record<number, string>
+    frameFiles: string[]
+    slideWidth: number
+    slideHeight: number
+  }): void => {
+    activeSource?.dispose()
+    setFilePath(result.filePath)
+    setActiveSource(
+      createPowerPointSource({
+        frameFiles: result.frameFiles,
+        goTo: window.api.powerpoint.goTo,
+        onCurrentSlideChanged: window.api.powerpoint.onCurrentSlideChanged,
+        close: window.api.powerpoint.close
+      })
+    )
+    setTotalPages(result.totalPages)
+    setCurrentPage(1)
+    setNotesBySlide(result.notesBySlide)
+    setSlideAspectRatio(result.slideWidth / result.slideHeight)
+  }
+
+  // The onAction effect below subscribes once ([] deps) so it doesn't need
+  // to unsubscribe/resubscribe on every keystroke — but that means it'd
+  // otherwise close over the very first render's apply* functions forever,
+  // which themselves close over a stale `activeSource` (so an OSC-driven
+  // open would fail to dispose() the real current source). This ref is
+  // resynced every render, mirroring the existing totalPagesRef pattern.
+  const applyResultRef = useRef({ applyPdfResult, applyKeynoteResult, applyPowerPointResult })
+  useEffect(() => {
+    applyResultRef.current = { applyPdfResult, applyKeynoteResult, applyPowerPointResult }
+  })
 
   useEffect(() => {
     return window.api.osc.onAction((action) => {
@@ -183,6 +273,29 @@ function App(): React.JSX.Element {
         setFeedbacksEnabled: setOscFeedbacksEnabled,
         refreshFeedback: () => {
           allFeedback(oscSnapshotRef.current).forEach((m) => window.api.osc.send(m.address, m.args))
+        },
+        setFilesPath: (relativeToHome) => {
+          window.api.files.setFolderRelative(relativeToHome).then((config) => {
+            setFilesFolderRelative(config.relativeToHome)
+            setFilesFolderFullPath(config.folderPath)
+          })
+        },
+        requestFilesList: () => {
+          window.api.files.list().then((files) => {
+            window.api.osc.send('/oscpoint/v2/files', [
+              { type: 'string', value: JSON.stringify(files) }
+            ])
+          })
+        },
+        openFileByName: (filename) => {
+          window.api.files.open(filename).then((result) => {
+            if (!result) return
+            const { applyPdfResult, applyKeynoteResult, applyPowerPointResult } =
+              applyResultRef.current
+            if (result.kind === 'pdf') applyPdfResult(result)
+            else if (result.kind === 'keynote') applyKeynoteResult(result)
+            else if (result.kind === 'powerpoint') applyPowerPointResult(result)
+          })
         }
       })
     })
@@ -356,52 +469,19 @@ function App(): React.JSX.Element {
   const openPdf = async (): Promise<void> => {
     const result = await window.api.pdf.open()
     if (!result) return
-    const doc = await loadPdf(result.data)
-    const notes = await window.api.notes.load(result.filePath)
-    activeSource?.dispose()
-    setFilePath(result.filePath)
-    setActiveSource(createPdfSource(doc, result.data))
-    setTotalPages(doc.numPages)
-    setCurrentPage(1)
-    setNotesBySlide(notes)
+    await applyPdfResult(result)
   }
 
   const openKeynote = async (): Promise<void> => {
     const result = await window.api.keynote.open()
     if (!result) return
-    activeSource?.dispose()
-    setFilePath(result.filePath)
-    setActiveSource(
-      createKeynoteSource({
-        frameFiles: result.frameFiles,
-        goTo: window.api.keynote.goTo,
-        onCurrentSlideChanged: window.api.keynote.onCurrentSlideChanged,
-        close: window.api.keynote.close
-      })
-    )
-    setTotalPages(result.totalPages)
-    setCurrentPage(1)
-    setNotesBySlide(result.notesBySlide)
-    setSlideAspectRatio(result.slideWidth / result.slideHeight)
+    applyKeynoteResult(result)
   }
 
   const openPowerPoint = async (): Promise<void> => {
     const result = await window.api.powerpoint.open()
     if (!result) return
-    activeSource?.dispose()
-    setFilePath(result.filePath)
-    setActiveSource(
-      createPowerPointSource({
-        frameFiles: result.frameFiles,
-        goTo: window.api.powerpoint.goTo,
-        onCurrentSlideChanged: window.api.powerpoint.onCurrentSlideChanged,
-        close: window.api.powerpoint.close
-      })
-    )
-    setTotalPages(result.totalPages)
-    setCurrentPage(1)
-    setNotesBySlide(result.notesBySlide)
-    setSlideAspectRatio(result.slideWidth / result.slideHeight)
+    applyPowerPointResult(result)
   }
 
   const connectGoogleSlides = (): void => {
@@ -555,7 +635,20 @@ function App(): React.JSX.Element {
             hideCursor={hideCursor}
             onHideCursorChange={setHideCursor}
           />
-          <OscControl />
+          <OscControl
+            filesEnabled={filesEnabled}
+            filesFolderFullPath={filesFolderFullPath}
+            onFilesEnabledChange={(enabled) => {
+              setFilesEnabled(enabled)
+              window.api.files.setEnabled(enabled)
+            }}
+            onChooseFilesFolder={() => {
+              window.api.files.chooseFolder().then((config) => {
+                setFilesFolderRelative(config.relativeToHome)
+                setFilesFolderFullPath(config.folderPath)
+              })
+            }}
+          />
           <button className="transport-btn" onClick={openPdf}>
             {filePath ? 'Open Different PDF…' : 'Open PDF…'}
           </button>

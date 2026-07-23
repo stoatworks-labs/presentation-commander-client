@@ -1,5 +1,5 @@
 import { app, shell, BrowserWindow, ipcMain, dialog, screen } from 'electron'
-import { join } from 'path'
+import { join, extname } from 'path'
 import { readFile, writeFile } from 'fs/promises'
 import os from 'os'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
@@ -13,6 +13,7 @@ import type { BrowserSourceApp } from './services/browserBridge'
 import { screenCaptureService } from './services/screenCapture'
 import { getOAuthStatus, setOAuthClientId } from './services/googleSlidesSetup'
 import { oscControlServer } from './services/oscControlServer'
+import { fileControl } from './services/fileControl'
 import type { RegisterMessage, SlideStateMessage } from '../shared/protocol'
 import type { ProgramOutState } from '../shared/programOut'
 import type { OscArg, OscConfig } from '../shared/osc'
@@ -188,6 +189,7 @@ app.whenReady().then(() => {
   oscControlServer.loadConfig().then((config) => {
     if (config.autoStart) oscControlServer.start()
   })
+  fileControl.loadConfig()
 
   ipcMain.handle('screen-capture:list-sources', () => screenCaptureService.listSources())
   ipcMain.handle('screen-capture:set-active', (_e, sourceId: string | null) =>
@@ -325,6 +327,43 @@ app.whenReady().then(() => {
   ipcMain.handle('osc:send', (_e, address: string, args: OscArg[]) =>
     oscControlServer.send(address, args)
   )
+
+  ipcMain.handle('files:get-config', () => fileControl.getConfig())
+  ipcMain.handle('files:set-enabled', (_e, enabled: boolean) => fileControl.setEnabled(enabled))
+  ipcMain.handle('files:set-folder-relative', (_e, relativePath: string) =>
+    fileControl.setFolderPathRelativeToHome(relativePath)
+  )
+  ipcMain.handle('files:choose-folder', async () => {
+    const result = await dialog.showOpenDialog(mainWindow, {
+      properties: ['openDirectory', 'createDirectory']
+    })
+    if (result.canceled || !result.filePaths[0]) return fileControl.getConfig()
+    return fileControl.setFolderPath(result.filePaths[0])
+  })
+  ipcMain.handle('files:list', () => fileControl.listFiles())
+  ipcMain.handle('files:open', async (_e, filename: string) => {
+    const filePath = fileControl.resolveFilename(filename)
+    if (!filePath) return null
+    const ext = extname(filePath).toLowerCase()
+    try {
+      if (ext === '.pdf') {
+        const data = await readFile(filePath)
+        return { kind: 'pdf' as const, filePath, data: data.toString('base64') }
+      }
+      if (ext === '.key') {
+        const opened = await keynoteBridge.open(filePath)
+        return { kind: 'keynote' as const, filePath, ...opened }
+      }
+      if (ext === '.pptx' || ext === '.ppt') {
+        const opened = await powerpointBridge.open(filePath)
+        return { kind: 'powerpoint' as const, filePath, ...opened }
+      }
+      return null
+    } catch (err) {
+      console.error(`Failed to open OSC-requested file ${filePath}`, err)
+      return null
+    }
+  })
 
   app.on('activate', function () {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()

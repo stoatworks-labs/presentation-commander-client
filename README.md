@@ -99,6 +99,17 @@ desktop app — no PowerPoint or Keynote dependency.
   WebSocket (`ws://<host>:9800`), registers itself by name, pushes live
   slide/notes state, and accepts remote next/previous-slide commands
   triggered from the server's Control Surface
+- **OSC control** — implements the core of
+  [OSCPoint](https://github.com/phuvf/oscpoint)'s OSC address space (slide
+  navigation, black/white, notes, Program Out open/close, system
+  enable/disable) across every source type — PDF, Keynote, PowerPoint,
+  Google Slides, Canva — using its same default ports (35551 in / 35550
+  out), so an existing Bitfocus Companion "Zinc: OSCPoint" setup drives
+  this app with no reconfiguration. Since it's plain UDP rather than a
+  Windows COM add-in, it works on every platform this app ships for. An
+  optional, off-by-default "watched folder" feature lets OSC open a
+  specific PDF/Keynote/PowerPoint file by filename without a dialog —
+  useful for a button wall that loads a specific deck on cue
 
 ## Architecture
 
