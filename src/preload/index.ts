@@ -110,7 +110,10 @@ const api = {
       return (): void => {
         ipcRenderer.removeListener('powerpoint:current-slide-changed', listener)
       }
-    }
+    },
+    mediaToggle: (): Promise<void> => ipcRenderer.invoke('powerpoint:media-toggle'),
+    getMediaDuration: (page: number): Promise<number | null> =>
+      ipcRenderer.invoke('powerpoint:media-duration', page)
   },
   browserBridge: {
     navigate: (direction: 'next' | 'previous', app: BrowserSourceApp): Promise<void> =>

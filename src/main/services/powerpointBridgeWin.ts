@@ -121,6 +121,65 @@ $pres = $ppt.ActivePresentation
 Write-Output $pres.Windows.Item(1).View.Slide.SlideNumber
 `
 
+// Media play/pause/stop: PowerPoint's COM object model has no direct
+// Play()/Pause() method on a media shape — real reference implementations
+// (benkuper/PowerPoint-OSC, leonreucher/powerpoint-remote-websocket, both
+// public VSTO add-ins) confirm this by only ever detecting/counting media
+// shapes, never actually controlling playback. The one real lever is
+// simulating the "Alt+P" keyboard shortcut Slide Show view recognizes for
+// toggling media playback — which only has anything to act on while a
+// live, fullscreen slideshow is actually running.
+//
+// This bridge doesn't itself drive a live slideshow (goTo/frame-export both
+// work fine against the editing view), but the *presenter* may well have
+// one running independently — e.g. they pressed F5 in PowerPoint directly
+// and are using this app purely for notes/remote control alongside it. In
+// that case this genuinely works. Guarded on SlideShowWindows.Count so it
+// can never mis-send a keystroke to whatever window happens to have OS
+// focus when no slideshow is running — it just safely no-ops instead.
+//
+// There's no separate "play only" or "pause only" shortcut in PowerPoint's
+// Slide Show view — Alt+P only toggles — and no documented way to query
+// current playback state via COM to decide which way to toggle. So
+// play/pause/stop all send the same toggle; this is a real, disclosed
+// limitation, not a bug.
+const MEDIA_TOGGLE_SCRIPT = `
+$ppt = [Runtime.InteropServices.Marshal]::GetActiveObject('PowerPoint.Application')
+if ($ppt.SlideShowWindows.Count -eq 0) { Write-Output 'no-slideshow'; exit }
+$ppt.SlideShowWindows.Item(1).Activate()
+Add-Type -AssemblyName System.Windows.Forms
+[System.Windows.Forms.SendKeys]::SendWait('%p')
+Write-Output 'sent'
+`
+
+// Duration feedback: Shape.MediaFormat.Length is a real, documented COM
+// property (milliseconds) and works against the plain Slides collection —
+// no live slideshow needed, unlike play/pause/stop above. This is the
+// specific capability OSCPoint's own FEEDBACKS.md documents getting right
+// (media/duration). Position/remaining/state aren't implemented alongside
+// it: there's no equivalently-documented "current playback position of a
+// live-playing video" COM property, and fabricating one would be worse
+// than omitting it — OSCPoint's own production implementation almost
+// certainly reaches this via UI Automation or a private API this bridge
+// doesn't have access to.
+function mediaDurationScript(page: number): string {
+  return `
+$ppt = [Runtime.InteropServices.Marshal]::GetActiveObject('PowerPoint.Application')
+$pres = $ppt.ActivePresentation
+$slide = $pres.Slides.Item(${page})
+$durationMs = -1
+foreach ($shape in $slide.Shapes) {
+  try {
+    if ($shape.Type -eq 16 -and ($shape.MediaType -eq 1 -or $shape.MediaType -eq 2)) {
+      $durationMs = $shape.MediaFormat.Length
+      break
+    }
+  } catch {}
+}
+Write-Output $durationMs
+`
+}
+
 const POLL_INTERVAL_MS = 400
 
 /** Bridges the renderer to a real, currently-open PowerPoint document via PowerShell
@@ -181,6 +240,28 @@ export class PowerPointBridgeWindows extends EventEmitter {
    *  changes they made directly in PowerPoint. Only the poll loop stops. */
   async close(): Promise<void> {
     this.stopPolling()
+  }
+
+  /** See MEDIA_TOGGLE_SCRIPT's doc comment — works if the presenter has a
+   * live PowerPoint slideshow running independently of this bridge;
+   * safely no-ops otherwise. */
+  async mediaToggle(): Promise<void> {
+    const result = await runPowerShell(MEDIA_TOGGLE_SCRIPT)
+    if (result !== 'sent') {
+      console.warn(
+        '[powerpoint-bridge-win] Media toggle no-op: no live slideshow window is running'
+      )
+    }
+  }
+
+  /** See mediaDurationScript's doc comment — real total duration in
+   * milliseconds for the first media shape on `page`, or null if that
+   * slide has none. Works against the plain Slides collection, no live
+   * slideshow required. */
+  async getMediaDuration(page: number): Promise<number | null> {
+    const raw = await runPowerShell(mediaDurationScript(page))
+    const ms = parseInt(raw, 10)
+    return Number.isNaN(ms) || ms < 0 ? null : ms
   }
 
   private startPolling(): void {

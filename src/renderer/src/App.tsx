@@ -55,6 +55,7 @@ function App(): React.JSX.Element {
   const [filesFolderFullPath, setFilesFolderFullPath] = useState<string | null>(null)
   const [sections, setSections] = useState<OscSection[]>([])
   const [laserPointerEnabled, setLaserPointerEnabled] = useState(false)
+  const [mediaDurationMs, setMediaDurationMs] = useState<number | null>(null)
   const oscSnapshotRef = useRef<OscSnapshot>({
     currentPage: 1,
     totalPages: 0,
@@ -70,7 +71,8 @@ function App(): React.JSX.Element {
     filesFolderRelative: null,
     filesFolderFullPath: null,
     sections: [],
-    laserPointerEnabled: false
+    laserPointerEnabled: false,
+    mediaDurationMs: null
   })
 
   // Live capture: an alternative, genuinely-live source for the Program/Next
@@ -162,6 +164,14 @@ function App(): React.JSX.Element {
     Promise.resolve(activeSource?.getSections ? activeSource.getSections() : []).then(setSections)
   }, [activeSource])
 
+  // Unlike sections, media duration is per-slide (a different slide may
+  // have different or no media), so this reloads on every page change too.
+  useEffect(() => {
+    Promise.resolve(
+      activeSource?.getMediaDuration ? activeSource.getMediaDuration(currentPage) : null
+    ).then(setMediaDurationMs)
+  }, [activeSource, currentPage])
+
   // Keeps a ref-mirrored snapshot of everything the OSC action dispatcher
   // and feedback builders need, and reactively resends feedback whenever
   // any of it changes — mirrors the existing server:pushSlideState effect
@@ -183,7 +193,8 @@ function App(): React.JSX.Element {
       filesFolderRelative,
       filesFolderFullPath,
       sections,
-      laserPointerEnabled
+      laserPointerEnabled,
+      mediaDurationMs
     }
     oscSnapshotRef.current = snapshot
     if (oscRunning && oscFeedbacksEnabled) {
@@ -204,6 +215,7 @@ function App(): React.JSX.Element {
     filesFolderFullPath,
     sections,
     laserPointerEnabled,
+    mediaDurationMs,
     oscRunning
   ])
 
@@ -259,7 +271,9 @@ function App(): React.JSX.Element {
         sections: result.sections,
         goTo: window.api.powerpoint.goTo,
         onCurrentSlideChanged: window.api.powerpoint.onCurrentSlideChanged,
-        close: window.api.powerpoint.close
+        close: window.api.powerpoint.close,
+        mediaToggle: window.api.powerpoint.mediaToggle,
+        getMediaDuration: window.api.powerpoint.getMediaDuration
       })
     )
     setTotalPages(result.totalPages)
@@ -274,9 +288,19 @@ function App(): React.JSX.Element {
   // which themselves close over a stale `activeSource` (so an OSC-driven
   // open would fail to dispose() the real current source). This ref is
   // resynced every render, mirroring the existing totalPagesRef pattern.
-  const applyResultRef = useRef({ applyPdfResult, applyKeynoteResult, applyPowerPointResult })
+  const applyResultRef = useRef({
+    applyPdfResult,
+    applyKeynoteResult,
+    applyPowerPointResult,
+    activeSource
+  })
   useEffect(() => {
-    applyResultRef.current = { applyPdfResult, applyKeynoteResult, applyPowerPointResult }
+    applyResultRef.current = {
+      applyPdfResult,
+      applyKeynoteResult,
+      applyPowerPointResult,
+      activeSource
+    }
   })
 
   useEffect(() => {
@@ -289,6 +313,10 @@ function App(): React.JSX.Element {
         openProgramOut: () => window.api.programOut.open(),
         closeProgramOut: () => window.api.programOut.close(),
         setLaserPointerEnabled,
+        mediaPlay: () => applyResultRef.current.activeSource?.mediaPlay?.(),
+        mediaPause: () => applyResultRef.current.activeSource?.mediaPause?.(),
+        mediaPlayPause: () => applyResultRef.current.activeSource?.mediaPlay?.(),
+        mediaStop: () => applyResultRef.current.activeSource?.mediaStop?.(),
         setActionsEnabled: setOscActionsEnabled,
         setFeedbacksEnabled: setOscFeedbacksEnabled,
         refreshFeedback: () => {

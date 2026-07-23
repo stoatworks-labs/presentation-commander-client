@@ -56,5 +56,43 @@ export interface SlideSource {
    */
   getSections?(): Promise<OscSection[]>
 
+  /**
+   * OSCPoint's media-control actions (/oscpoint/media/play|pause|stop).
+   * Only implemented for PowerPoint on Windows, via a keyboard-shortcut
+   * toggle that requires the presenter to have a live PowerPoint slideshow
+   * running independently of this bridge (see powerpointBridgeWin.ts's
+   * MEDIA_TOGGLE_SCRIPT doc comment) — a real, working path for that case,
+   * not a stub. Not implementable anywhere else:
+   *   - PDF: pdf.js has no embedded-video playback model at all.
+   *   - Keynote: confirmed via direct inspection of Keynote.sdef that its
+   *     `movie` class exposes zero playback commands (only static
+   *     properties — file name, volume, opacity, rotation).
+   *   - PowerPoint on Mac: confirmed via direct inspection of
+   *     PowerPoint.sdef that its media object classes expose only
+   *     read-only file-name/link properties — even less than Keynote.
+   *   - Google Slides / Canva: not attempted in this pass.
+   * There's no separate play-only/pause-only shortcut and no documented
+   * way to query current playback state via COM, so all three call the
+   * same underlying toggle — a real, disclosed limitation, not a bug.
+   * Seeking (/media/goto/position/*) and bookmark navigation
+   * (/media/goto/bookmark/*) aren't exposed here at all, on any source —
+   * no known automation technique reaches them even where play/pause/stop
+   * might.
+   */
+  mediaPlay?(): Promise<void>
+  mediaPause?(): Promise<void>
+  mediaStop?(): Promise<void>
+
+  /**
+   * Total duration (milliseconds) of the first media shape on `page`, or
+   * null if that slide has none. Only implemented for PowerPoint, via the
+   * real, documented `Shape.MediaFormat.Length` COM property — works
+   * against the plain Slides collection, no live slideshow required
+   * (unlike mediaPlay/mediaPause/mediaStop above). Position/remaining/state
+   * aren't exposed anywhere: no equivalently-documented COM property for a
+   * live video's current playback position was found.
+   */
+  getMediaDuration?(page: number): Promise<number | null>
+
   dispose(): void
 }

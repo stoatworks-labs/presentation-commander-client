@@ -194,6 +194,20 @@ export class PowerPointBridgeMac extends EventEmitter {
     }
   }
 
+  /** Confirmed via direct inspection of PowerPoint.sdef: the Mac AppleScript
+   * dictionary's `media object`/`media2 object` classes expose only
+   * read-only file-name/link properties — no playback control at all, even
+   * less than Keynote's `movie` class (which at least has settable volume/
+   * opacity). Always a no-op; kept only so powerpointBridge.ts's platform
+   * shim type-checks identically on both platforms. */
+  // eslint-disable-next-line @typescript-eslint/no-empty-function -- see doc comment above
+  async mediaToggle(): Promise<void> {}
+
+  /** See mediaToggle's doc comment — same finding applies to duration. */
+  async getMediaDuration(): Promise<number | null> {
+    return null
+  }
+
   private startPolling(): void {
     this.pollTimer = setInterval(() => {
       runAppleScript(CURRENT_SLIDE_SCRIPT)

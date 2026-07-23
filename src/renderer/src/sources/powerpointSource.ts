@@ -25,6 +25,10 @@ export interface PowerPointHandle {
   goTo(page: number): Promise<void>
   onCurrentSlideChanged(callback: (page: number) => void): () => void
   close(): Promise<void>
+  /** See SlideSource.mediaPlay's doc comment — a no-op on Mac, a real
+   * best-effort toggle on Windows. */
+  mediaToggle(): Promise<void>
+  getMediaDuration(page: number): Promise<number | null>
 }
 
 /** SlideSource backed by a live PowerPoint document — see main/services/powerpointBridge.ts for the AppleScript side. */
@@ -62,6 +66,18 @@ export function createPowerPointSource(handle: PowerPointHandle): SlideSource {
     },
     async getSections() {
       return handle.sections
+    },
+    mediaPlay() {
+      return handle.mediaToggle()
+    },
+    mediaPause() {
+      return handle.mediaToggle()
+    },
+    mediaStop() {
+      return handle.mediaToggle()
+    },
+    getMediaDuration(page) {
+      return handle.getMediaDuration(page)
     },
     dispose() {
       handle.close().catch((err) => console.error('Failed to close PowerPoint source', err))

@@ -117,7 +117,15 @@ desktop app — no PowerPoint or Keynote dependency.
   `/oscpoint/slideshow/laserpointer` mirrors the presenter's mouse
   position over the "Now" preview onto Program Out as a glowing dot,
   matching PowerPoint's own laser-pointer feature — source-agnostic,
-  since it's purely a display overlay independent of slide content
+  since it's purely a display overlay independent of slide content. Media
+  control (`/oscpoint/media/play|pause|playpause|stop` and a
+  `media/duration` feedback) works only for PowerPoint on Windows, and only
+  when the presenter has a live PowerPoint slideshow running independently
+  of this app (e.g. started directly in PowerPoint) — it's a keyboard-
+  shortcut toggle under the hood, since PowerPoint's COM object model has
+  no direct play/pause method. Not available anywhere else: confirmed via
+  direct inspection of both Keynote's and PowerPoint-for-Mac's scripting
+  dictionaries that neither exposes any playback control at all
 
 ## Architecture
 

@@ -26,6 +26,10 @@ export interface OscSnapshot {
   filesFolderFullPath: string | null
   sections: OscSection[]
   laserPointerEnabled: boolean
+  /** Total duration (ms) of the current page's media, or null if there is
+   * none / it can't be determined — see SlideSource.getMediaDuration's doc
+   * comment for why position/remaining/state aren't tracked alongside it. */
+  mediaDurationMs: number | null
 }
 
 export interface OscHandlers {
@@ -38,6 +42,15 @@ export interface OscHandlers {
   setLaserPointerEnabled(enabled: boolean): void
   setActionsEnabled(enabled: boolean): void
   setFeedbacksEnabled(enabled: boolean): void
+  /** All four call through to the same underlying toggle on every source
+   * that implements media control today (see SlideSource.mediaPlay's doc
+   * comment) — kept as four separate slots since the OSC addresses
+   * themselves are distinct, and a future source might genuinely
+   * distinguish them. */
+  mediaPlay(): void
+  mediaPause(): void
+  mediaPlayPause(): void
+  mediaStop(): void
   /** Resend the full current feedback state right now — used both for the
    * explicit /oscpoint/feedbacks/refresh action and the "also triggers a
    * refresh" behavior /oscpoint/feedbacks/enable documents. Always sends,
@@ -186,13 +199,23 @@ export function filesFeedback(s: OscSnapshot): OscMessage[] {
   ]
 }
 
+/** Builds the media/duration feedback — only sent when a duration is
+ * actually known (see OscSnapshot.mediaDurationMs's doc comment for why
+ * state/position/remaining/durationtrimmed/startpoint/endpoint aren't
+ * included alongside it). */
+export function mediaFeedback(s: OscSnapshot): OscMessage[] {
+  if (s.mediaDurationMs === null) return []
+  return [{ address: '/oscpoint/slideshow/media/duration', args: [argInt(s.mediaDurationMs)] }]
+}
+
 export function allFeedback(s: OscSnapshot): OscMessage[] {
   return [
     ...presentationFeedback(s),
     ...slideFeedback(s),
     ...notesFeedback(s),
     ...sectionFeedback(s),
-    ...filesFeedback(s)
+    ...filesFeedback(s),
+    ...mediaFeedback(s)
   ]
 }
 
@@ -301,6 +324,18 @@ export function handleOscAction(
       handlers.openFileByName(filename)
       return
     }
+    case '/oscpoint/media/play':
+      handlers.mediaPlay()
+      return
+    case '/oscpoint/media/pause':
+      handlers.mediaPause()
+      return
+    case '/oscpoint/media/playpause':
+      handlers.mediaPlayPause()
+      return
+    case '/oscpoint/media/stop':
+      handlers.mediaStop()
+      return
     default:
       return
   }

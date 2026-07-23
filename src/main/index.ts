@@ -245,6 +245,10 @@ app.whenReady().then(() => {
   })
   ipcMain.handle('powerpoint:goto', (_e, page: number) => powerpointBridge.goTo(page))
   ipcMain.handle('powerpoint:close', () => powerpointBridge.close())
+  ipcMain.handle('powerpoint:media-toggle', () => powerpointBridge.mediaToggle())
+  ipcMain.handle('powerpoint:media-duration', (_e, page: number) =>
+    powerpointBridge.getMediaDuration(page)
+  )
 
   ipcMain.handle(
     'browser-bridge:navigate',
