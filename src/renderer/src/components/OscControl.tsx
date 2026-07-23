@@ -77,8 +77,16 @@ function OscControl({
             />
           </label>
           <p className="osc-settings-hint">
-            Matches OSCPoint&rsquo;s own defaults (35551 in / 35550 out) — an existing Companion
-            &ldquo;Zinc: OSCPoint&rdquo; connection works against this app with no changes.
+            Defaults to 35551 in / 35550 out. A Bitfocus Companion module for this app is available
+            at{' '}
+            <a
+              href="https://github.com/allansargeant/companion-module-presentation-commander-client"
+              target="_blank"
+              rel="noreferrer"
+            >
+              companion-module-presentation-commander-client
+            </a>
+            — point it at the same host/port.
           </p>
           <hr className="osc-settings-divider" />
           <label className="osc-settings-checkbox">

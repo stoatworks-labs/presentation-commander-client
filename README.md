@@ -99,14 +99,14 @@ desktop app — no PowerPoint or Keynote dependency.
   WebSocket (`ws://<host>:9800`), registers itself by name, pushes live
   slide/notes state, and accepts remote next/previous-slide commands
   triggered from the server's Control Surface
-- **OSC control** — implements the core of
-  [OSCPoint](https://github.com/phuvf/oscpoint)'s OSC address space (slide
-  navigation, black/white, notes, Program Out open/close, system
-  enable/disable) across every source type — PDF, Keynote, PowerPoint,
-  Google Slides, Canva — using its same default ports (35551 in / 35550
-  out), so an existing Bitfocus Companion "Zinc: OSCPoint" setup drives
-  this app with no reconfiguration. Since it's plain UDP rather than a
-  Windows COM add-in, it works on every platform this app ships for. An
+- **OSC control** — a UDP OSC address space (slide navigation, black/white,
+  notes, Program Out open/close, system enable/disable) at
+  `/presentcommander/...`, across every source type — PDF, Keynote,
+  PowerPoint, Google Slides, Canva. Plain UDP rather than a Windows COM
+  add-in, so it works on every platform this app ships for. A real
+  Bitfocus Companion module ships alongside this app —
+  [companion-module-presentation-commander-client](https://github.com/allansargeant/companion-module-presentation-commander-client)
+  — for driving it from a Stream Deck or any other Companion surface. An
   optional, off-by-default "watched folder" feature lets OSC open a
   specific PDF/Keynote/PowerPoint file by filename without a dialog —
   useful for a button wall that loads a specific deck on cue. Sections
@@ -114,11 +114,11 @@ desktop app — no PowerPoint or Keynote dependency.
   PowerPoint's native COM `SectionProperties` on Windows — Keynote,
   Google Slides, Canva, and PowerPoint on Mac have no native section
   concept to map from, so they report none rather than fabricating one.
-  `/oscpoint/slideshow/laserpointer` mirrors the presenter's mouse
+  `/presentcommander/slideshow/laserpointer` mirrors the presenter's mouse
   position over the "Now" preview onto Program Out as a glowing dot,
   matching PowerPoint's own laser-pointer feature — source-agnostic,
   since it's purely a display overlay independent of slide content. Media
-  control (`/oscpoint/media/play|pause|playpause|stop` and a
+  control (`/presentcommander/media/play|pause|playpause|stop` and a
   `media/duration` feedback) works only for PowerPoint on Windows, and only
   when the presenter has a live PowerPoint slideshow running independently
   of this app (e.g. started directly in PowerPoint) — it's a keyboard-
@@ -126,15 +126,15 @@ desktop app — no PowerPoint or Keynote dependency.
   no direct play/pause method. Not available anywhere else: confirmed via
   direct inspection of both Keynote's and PowerPoint-for-Mac's scripting
   dictionaries that neither exposes any playback control at all.
-  `/oscpoint/slideshow/setwallpaper` renders whatever's currently on
-  screen and sets it as the desktop wallpaper on every connected monitor
-  — source-agnostic (works for every source type via the same
+  `/presentcommander/slideshow/setwallpaper` renders whatever's currently
+  on screen and sets it as the desktop wallpaper on every connected
+  monitor — source-agnostic (works for every source type via the same
   `renderFrame` every SlideSource already implements). macOS and Windows
   are fully covered, Linux is GNOME-only. **Timed auto-advance** — an
   optional "advance every N seconds" mode (stops at the last slide rather
   than looping), with its own play/pause control next to the OSC
-  settings — `/oscpoint/slideshow/pause` and `/resume` suspend/resume it
-  remotely once it's turned on, and are a no-op if it was never enabled
+  settings — `/presentcommander/slideshow/pause` and `/resume` suspend/resume
+  it remotely once it's turned on, and are a no-op if it was never enabled
 
 ## Architecture
 

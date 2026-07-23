@@ -122,13 +122,12 @@ Write-Output $pres.Windows.Item(1).View.Slide.SlideNumber
 `
 
 // Media play/pause/stop: PowerPoint's COM object model has no direct
-// Play()/Pause() method on a media shape — real reference implementations
-// (benkuper/PowerPoint-OSC, leonreucher/powerpoint-remote-websocket, both
-// public VSTO add-ins) confirm this by only ever detecting/counting media
-// shapes, never actually controlling playback. The one real lever is
-// simulating the "Alt+P" keyboard shortcut Slide Show view recognizes for
-// toggling media playback — which only has anything to act on while a
-// live, fullscreen slideshow is actually running.
+// Play()/Pause() method on a media shape — confirmed by researching public
+// VSTO add-ins that automate PowerPoint media, all of which only ever
+// detect/count media shapes, never actually control playback. The one real
+// lever is simulating the "Alt+P" keyboard shortcut Slide Show view
+// recognizes for toggling media playback — which only has anything to act
+// on while a live, fullscreen slideshow is actually running.
 //
 // This bridge doesn't itself drive a live slideshow (goTo/frame-export both
 // work fine against the editing view), but the *presenter* may well have
@@ -154,14 +153,12 @@ Write-Output 'sent'
 
 // Duration feedback: Shape.MediaFormat.Length is a real, documented COM
 // property (milliseconds) and works against the plain Slides collection —
-// no live slideshow needed, unlike play/pause/stop above. This is the
-// specific capability OSCPoint's own FEEDBACKS.md documents getting right
-// (media/duration). Position/remaining/state aren't implemented alongside
-// it: there's no equivalently-documented "current playback position of a
-// live-playing video" COM property, and fabricating one would be worse
-// than omitting it — OSCPoint's own production implementation almost
-// certainly reaches this via UI Automation or a private API this bridge
-// doesn't have access to.
+// no live slideshow needed, unlike play/pause/stop above. Position/
+// remaining/state aren't implemented alongside it: there's no
+// equivalently-documented "current playback position of a live-playing
+// video" COM property, and fabricating one would be worse than omitting
+// it — a real implementation would likely need UI Automation or a private
+// API this bridge doesn't have access to.
 function mediaDurationScript(page: number): string {
   return `
 $ppt = [Runtime.InteropServices.Marshal]::GetActiveObject('PowerPoint.Application')

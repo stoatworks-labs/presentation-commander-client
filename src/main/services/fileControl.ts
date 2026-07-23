@@ -52,8 +52,8 @@ class FileControlService {
     return { ...this.config }
   }
 
-  /** Matches OSCPoint's own /oscpoint/files/setpath convention: the path is
-   * relative to the user's home directory. */
+  /** The watched folder is always set relative to the user's home
+   * directory, not as an absolute path. */
   async setFolderPathRelativeToHome(relativePath: string): Promise<FileControlConfig> {
     return this.setFolderPath(join(homedir(), relativePath))
   }
@@ -77,10 +77,9 @@ class FileControlService {
   /** Resolves `filename` against the active folder, rejecting anything
    * that isn't a bare filename (no path traversal) or isn't one of
    * SUPPORTED_EXTENSIONS. Returns null rather than throwing for any
-   * not-allowed case — callers treat "can't open this" as a no-op,
-   * matching OSCPoint's own "will do nothing if X" behavior. Doesn't check
-   * the file actually exists — the caller's own read/bridge-open call
-   * surfaces that. */
+   * not-allowed case — callers treat "can't open this" as a no-op rather
+   * than an error. Doesn't check the file actually exists — the caller's
+   * own read/bridge-open call surfaces that. */
   resolveFilename(filename: string): string | null {
     if (!this.config.folderPath) return null
     if (filename.includes('/') || filename.includes('\\') || filename.includes('..')) return null

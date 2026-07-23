@@ -32,9 +32,8 @@ export interface OscSnapshot {
   mediaDurationMs: number | null
   /** Whether the presenter has turned on timed auto-advance at all —
    * pause/resume only make sense (and only take effect) once this is
-   * true, matching real PowerPoint semantics: OSCPoint's pause/resume
-   * suspend an *already-configured* auto-advance timer, they don't turn
-   * the feature on from cold. */
+   * true: pause/resume suspend an *already-configured* auto-advance
+   * timer, they don't turn the feature on from cold. */
   autoAdvanceEnabled: boolean
   autoAdvancePaused: boolean
 }
@@ -50,8 +49,7 @@ export interface OscHandlers {
   /** Renders whatever's on screen right now to width x height (default
    * 1920x1080 if either is omitted) and sets it as the desktop wallpaper. */
   setWallpaper(width?: number, height?: number): void
-  /** No-op when autoAdvanceEnabled is false — checked by the dispatcher,
-   * matching OSCPoint's own "pause/resume an existing timer" semantics. */
+  /** No-op when autoAdvanceEnabled is false — checked by the dispatcher. */
   setAutoAdvancePaused(paused: boolean): void
   setActionsEnabled(enabled: boolean): void
   setFeedbacksEnabled(enabled: boolean): void
@@ -65,10 +63,9 @@ export interface OscHandlers {
   mediaPlayPause(): void
   mediaStop(): void
   /** Resend the full current feedback state right now — used both for the
-   * explicit /oscpoint/feedbacks/refresh action and the "also triggers a
-   * refresh" behavior /oscpoint/feedbacks/enable documents. Always sends,
-   * regardless of the feedbacksEnabled flag, since it's an explicit,
-   * deliberate request. */
+   * explicit feedbacks/refresh action and the "also triggers a refresh"
+   * behavior feedbacks/enable carries. Always sends, regardless of the
+   * feedbacksEnabled flag, since it's an explicit, deliberate request. */
   refreshFeedback(): void
   /** All three are no-ops when filesEnabled is false — checked by the
    * dispatcher before calling any of these, not by the handlers themselves. */
@@ -109,8 +106,8 @@ function argBool(value: boolean): OscArg {
   return value ? { type: 'true', value: true } : { type: 'false', value: false }
 }
 
-/** OSCPoint's own convention: string args can arrive as ASCII (`string`
- * type) or UTF-8 (`blob` type) — accept either. */
+/** String args can arrive as ASCII (`string` type) or UTF-8 (`blob` type) —
+ * accept either. */
 function argToString(arg: OscArg | undefined): string | undefined {
   if (!arg) return undefined
   if (arg.type === 'string' || arg.type === 'symbol' || arg.type === 'character') return arg.value
@@ -141,7 +138,7 @@ function slideshowStateValue(s: OscSnapshot): 'edit' | 'running' | 'paused' {
   return s.autoAdvanceEnabled && s.autoAdvancePaused ? 'paused' : 'running'
 }
 
-/** Builds the /oscpoint/v2/presentation + presentation/* feedback messages. */
+/** Builds the /presentcommander/presentation + presentation/* feedback messages. */
 export function presentationFeedback(s: OscSnapshot): OscMessage[] {
   const presentationJson = JSON.stringify({
     name: s.fileName ?? '',
@@ -153,11 +150,14 @@ export function presentationFeedback(s: OscSnapshot): OscMessage[] {
     sections: s.sections.length ? s.sections.map((sec, i) => ({ id: String(i), ...sec })) : null
   })
   return [
-    { address: '/oscpoint/v2/presentation', args: [argStr(presentationJson)] },
-    { address: '/oscpoint/presentation/name', args: [argStr(s.fileName ?? '')] },
-    { address: '/oscpoint/presentation/slides/count', args: [argInt(s.totalPages)] },
-    { address: '/oscpoint/presentation/slides/count/visible', args: [argInt(s.totalPages)] },
-    { address: '/oscpoint/slideshow/state', args: [argStr(slideshowStateValue(s))] }
+    { address: '/presentcommander/presentation', args: [argStr(presentationJson)] },
+    { address: '/presentcommander/presentation/name', args: [argStr(s.fileName ?? '')] },
+    { address: '/presentcommander/presentation/slides/count', args: [argInt(s.totalPages)] },
+    {
+      address: '/presentcommander/presentation/slides/count/visible',
+      args: [argInt(s.totalPages)]
+    },
+    { address: '/presentcommander/slideshow/state', args: [argStr(slideshowStateValue(s))] }
   ]
 }
 
@@ -166,29 +166,28 @@ export function presentationFeedback(s: OscSnapshot): OscMessage[] {
 export function slideFeedback(s: OscSnapshot): OscMessage[] {
   if (s.totalPages === 0) return []
   return [
-    { address: '/oscpoint/slideshow/currentslide', args: [argInt(s.currentPage)] },
+    { address: '/presentcommander/slideshow/currentslide', args: [argInt(s.currentPage)] },
     {
-      address: '/oscpoint/slideshow/slidesremaining',
+      address: '/presentcommander/slideshow/slidesremaining',
       args: [argInt(Math.max(s.totalPages - s.currentPage, 0))]
     }
   ]
 }
 
-/** Builds the notes feedback pair (ASCII string + UTF-8 blob), matching
- * OSCPoint's own dual-address convention for non-ASCII-safe text. */
+/** Builds the notes feedback pair (ASCII string + UTF-8 blob), for
+ * non-ASCII-safe text. */
 export function notesFeedback(s: OscSnapshot): OscMessage[] {
   if (s.totalPages === 0) return []
   const notes = s.notesBySlide[s.currentPage] ?? ''
   return [
-    { address: '/oscpoint/slideshow/notes', args: [argStr(notes)] },
-    { address: '/oscpoint/slideshow/notes-utf8', args: [argBlobUtf8(notes)] }
+    { address: '/presentcommander/slideshow/notes', args: [argStr(notes)] },
+    { address: '/presentcommander/slideshow/notes-utf8', args: [argBlobUtf8(notes)] }
   ]
 }
 
 /** Builds the slideshow/section/* feedback messages — only sent when the
- * current page actually falls inside a known section, matching FEEDBACKS.md's
- * "valid only during a slide show" framing for the equivalent PowerPoint
- * feedbacks (no fabricated section-of-1 data when there are no sections). */
+ * current page actually falls inside a known section (no fabricated
+ * section-of-1 data when there are no sections). */
 export function sectionFeedback(s: OscSnapshot): OscMessage[] {
   const index = s.sections.findIndex(
     (sec) => s.currentPage >= sec.firstSlide && s.currentPage <= sec.lastSlide
@@ -196,22 +195,25 @@ export function sectionFeedback(s: OscSnapshot): OscMessage[] {
   if (index === -1) return []
   const section = s.sections[index]
   return [
-    { address: '/oscpoint/slideshow/section/index', args: [argInt(index + 1)] },
-    { address: '/oscpoint/slideshow/section/name', args: [argStr(section.name)] },
+    { address: '/presentcommander/slideshow/section/index', args: [argInt(index + 1)] },
+    { address: '/presentcommander/slideshow/section/name', args: [argStr(section.name)] },
     {
-      address: '/oscpoint/slideshow/section/slidesremaining',
+      address: '/presentcommander/slideshow/section/slidesremaining',
       args: [argInt(Math.max(section.lastSlide - s.currentPage, 0))]
     }
   ]
 }
 
-/** Builds the /oscpoint/v2/files/* feedback messages. */
+/** Builds the /presentcommander/files/* feedback messages. */
 export function filesFeedback(s: OscSnapshot): OscMessage[] {
   return [
-    { address: '/oscpoint/v2/files/enabled', args: [argBool(s.filesEnabled)] },
-    { address: '/oscpoint/v2/files/activefolder', args: [argStr(s.filesFolderRelative ?? '')] },
+    { address: '/presentcommander/files/enabled', args: [argBool(s.filesEnabled)] },
     {
-      address: '/oscpoint/v2/files/activefolder/fullpath',
+      address: '/presentcommander/files/activefolder',
+      args: [argStr(s.filesFolderRelative ?? '')]
+    },
+    {
+      address: '/presentcommander/files/activefolder/fullpath',
       args: [argStr(s.filesFolderFullPath ?? '')]
     }
   ]
@@ -223,7 +225,9 @@ export function filesFeedback(s: OscSnapshot): OscMessage[] {
  * included alongside it). */
 export function mediaFeedback(s: OscSnapshot): OscMessage[] {
   if (s.mediaDurationMs === null) return []
-  return [{ address: '/oscpoint/slideshow/media/duration', args: [argInt(s.mediaDurationMs)] }]
+  return [
+    { address: '/presentcommander/slideshow/media/duration', args: [argInt(s.mediaDurationMs)] }
+  ]
 }
 
 export function allFeedback(s: OscSnapshot): OscMessage[] {
@@ -239,10 +243,10 @@ export function allFeedback(s: OscSnapshot): OscMessage[] {
 
 /**
  * Dispatches one inbound OSC message to the app. Addresses this app can't
- * fulfill (sections, media, wallpaper, laser pointer, auto-advance — see
- * the OSCPoint plan's phased roadmap) fall through the switch's default
- * case and are silently ignored, exactly like OSCPoint itself ignores
- * malformed/unknown messages — not an error, just a no-op.
+ * fulfill for the current source (sections, media — see each SlideSource
+ * implementation's optional methods) simply aren't implemented — they fall
+ * through the switch's default case and are silently ignored, not treated
+ * as an error.
  */
 export function handleOscAction(
   action: OscAction,
@@ -251,43 +255,42 @@ export function handleOscAction(
 ): void {
   const { address, args } = action
 
-  // Per OSCPoint's own documented behavior: every message except this one
-  // is ignored while actions are disabled.
-  if (address === '/oscpoint/actions/enable') {
+  // Every message except this one is ignored while actions are disabled.
+  if (address === '/presentcommander/actions/enable') {
     handlers.setActionsEnabled(true)
     return
   }
   if (!snapshot.actionsEnabled) return
 
   switch (address) {
-    case '/oscpoint/actions/disable':
+    case '/presentcommander/actions/disable':
       handlers.setActionsEnabled(false)
       return
-    case '/oscpoint/feedbacks/enable':
+    case '/presentcommander/feedbacks/enable':
       handlers.setFeedbacksEnabled(true)
       handlers.refreshFeedback()
       return
-    case '/oscpoint/feedbacks/disable':
+    case '/presentcommander/feedbacks/disable':
       handlers.setFeedbacksEnabled(false)
       return
-    case '/oscpoint/feedbacks/refresh':
+    case '/presentcommander/feedbacks/refresh':
       handlers.refreshFeedback()
       return
-    case '/oscpoint/next':
+    case '/presentcommander/next':
       handlers.nextPage()
       return
-    case '/oscpoint/previous':
+    case '/presentcommander/previous':
       handlers.previousPage()
       return
-    case '/oscpoint/goto/slide/first':
+    case '/presentcommander/goto/slide/first':
       handlers.goToPage(1)
       return
-    case '/oscpoint/goto/slide/last':
+    case '/presentcommander/goto/slide/last':
       handlers.goToPage(snapshot.totalPages)
       return
-    case '/oscpoint/goto/section': {
-      // Case-sensitive, matching OSCPoint's own documented behavior; does
-      // nothing if the name isn't found rather than erroring.
+    case '/presentcommander/goto/section': {
+      // Case-sensitive; does nothing if the name isn't found rather than
+      // erroring.
       const name = argToString(args[0])
       if (name === undefined) return
       const section = snapshot.sections.find((sec) => sec.name === name)
@@ -295,74 +298,74 @@ export function handleOscAction(
       handlers.goToPage(section.firstSlide)
       return
     }
-    case '/oscpoint/goto/slide': {
+    case '/presentcommander/goto/slide': {
       const n = argToNumber(args[0])
       if (n === undefined) return
       handlers.goToPage(clampPage(n, snapshot.totalPages))
       return
     }
-    case '/oscpoint/slideshow/start': {
+    case '/presentcommander/slideshow/start': {
       handlers.openProgramOut()
       const n = argToNumber(args[0])
       handlers.goToPage(n !== undefined ? clampPage(n, snapshot.totalPages) : 1)
       return
     }
-    case '/oscpoint/slideshow/start/current':
+    case '/presentcommander/slideshow/start/current':
       handlers.openProgramOut()
       return
-    case '/oscpoint/slideshow/end':
+    case '/presentcommander/slideshow/end':
       handlers.closeProgramOut()
       return
-    case '/oscpoint/slideshow/black':
+    case '/presentcommander/slideshow/black':
       handlers.setScreenBlank(resolveBlankToggle(args[0], 'black', snapshot.screenBlank))
       return
-    case '/oscpoint/slideshow/white':
+    case '/presentcommander/slideshow/white':
       handlers.setScreenBlank(resolveBlankToggle(args[0], 'white', snapshot.screenBlank))
       return
-    case '/oscpoint/slideshow/laserpointer': {
+    case '/presentcommander/slideshow/laserpointer': {
       const on = argToBoolean(args[0])
       handlers.setLaserPointerEnabled(on === undefined ? !snapshot.laserPointerEnabled : on)
       return
     }
-    case '/oscpoint/slideshow/setwallpaper':
+    case '/presentcommander/slideshow/setwallpaper':
       handlers.setWallpaper(argToNumber(args[0]), argToNumber(args[1]))
       return
-    case '/oscpoint/slideshow/pause':
+    case '/presentcommander/slideshow/pause':
       if (!snapshot.autoAdvanceEnabled) return
       handlers.setAutoAdvancePaused(true)
       return
-    case '/oscpoint/slideshow/resume':
+    case '/presentcommander/slideshow/resume':
       if (!snapshot.autoAdvanceEnabled) return
       handlers.setAutoAdvancePaused(false)
       return
-    case '/oscpoint/files/setpath': {
+    case '/presentcommander/files/setpath': {
       if (!snapshot.filesEnabled) return
       const path = argToString(args[0])
       if (path === undefined) return
       handlers.setFilesPath(path)
       return
     }
-    case '/oscpoint/files/list':
+    case '/presentcommander/files/list':
       if (!snapshot.filesEnabled) return
       handlers.requestFilesList()
       return
-    case '/oscpoint/files/open': {
+    case '/presentcommander/files/open': {
       if (!snapshot.filesEnabled) return
       const filename = argToString(args[0])
       if (filename === undefined) return
       handlers.openFileByName(filename)
       return
     }
-    case '/oscpoint/media/play':
+    case '/presentcommander/media/play':
       handlers.mediaPlay()
       return
-    case '/oscpoint/media/pause':
+    case '/presentcommander/media/pause':
       handlers.mediaPause()
       return
-    case '/oscpoint/media/playpause':
+    case '/presentcommander/media/playpause':
       handlers.mediaPlayPause()
       return
-    case '/oscpoint/media/stop':
+    case '/presentcommander/media/stop':
       handlers.mediaStop()
       return
     default:

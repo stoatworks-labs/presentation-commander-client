@@ -21,8 +21,8 @@ import OscControl from './components/OscControl'
 import AutoAdvanceControl from './components/AutoAdvanceControl'
 import { createLiveCapture } from './liveCapture'
 import type { CropRect } from './liveCapture'
-import { handleOscAction, allFeedback } from './osc/oscpoint'
-import type { OscSnapshot } from './osc/oscpoint'
+import { handleOscAction, allFeedback } from './osc/protocol'
+import type { OscSnapshot } from './osc/protocol'
 import type { OscSection } from '../../shared/sections'
 
 const NDI_STREAM_PROGRAM = 'program'
@@ -154,8 +154,8 @@ function App(): React.JSX.Element {
 
   // Program Out's own open/close state is otherwise only tracked locally
   // inside ProgramOutControl.tsx — mirrored here too since OSC feedback
-  // (slideshow/state) and the /oscpoint/slideshow/start|end actions both
-  // need to read/drive it from here.
+  // (slideshow/state) and the /presentcommander/slideshow/start|end actions
+  // both need to read/drive it from here.
   useEffect(() => {
     window.api.programOut.isOpen().then(setProgramOutOpen)
     return window.api.programOut.onOpenChanged(setProgramOutOpen)
@@ -192,7 +192,7 @@ function App(): React.JSX.Element {
   // Keeps a ref-mirrored snapshot of everything the OSC action dispatcher
   // and feedback builders need, and reactively resends feedback whenever
   // any of it changes — mirrors the existing server:pushSlideState effect
-  // below, just for the OSCPoint wire protocol instead.
+  // below, just for the OSC wire protocol instead.
   useEffect(() => {
     const fileName = filePath ? (filePath.split('/').pop() ?? filePath) : null
     const snapshot: OscSnapshot = {
@@ -366,7 +366,7 @@ function App(): React.JSX.Element {
         },
         requestFilesList: () => {
           window.api.files.list().then((files) => {
-            window.api.osc.send('/oscpoint/v2/files', [
+            window.api.osc.send('/presentcommander/files', [
               { type: 'string', value: JSON.stringify(files) }
             ])
           })

@@ -21,7 +21,7 @@ export type ProgramOutState = (
   screenBlank?: ScreenBlank
   /** Hides the OS mouse cursor while it's over the Program Out window. */
   hideCursor?: boolean
-  /** Toggled by /oscpoint/slideshow/laserpointer — whether Program Out
+  /** Toggled by /presentcommander/slideshow/laserpointer — whether Program Out
    * should render the laser-pointer overlay dot at all. Actual pointer
    * position is pushed separately (see LaserPosition below), since it
    * updates far more often than the rest of this state. */

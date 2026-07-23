@@ -47,8 +47,8 @@ export interface SlideSource {
   getLinks?(page: number): Promise<PageLinksResult>
 
   /**
-   * OSCPoint's "section" concept, mapped from whatever the underlying
-   * source has a native equivalent of. Omitted entirely for sources with
+   * A named range of slides, mapped from whatever the underlying source
+   * has a native equivalent of. Omitted entirely for sources with
    * no such concept (Keynote, Google Slides, Canva, and PowerPoint on Mac
    * — see shared/sections.ts) rather than returning an empty array, so
    * the dispatcher can tell "no sections exist" apart from "this source
@@ -57,7 +57,7 @@ export interface SlideSource {
   getSections?(): Promise<OscSection[]>
 
   /**
-   * OSCPoint's media-control actions (/oscpoint/media/play|pause|stop).
+   * The media-control actions (/presentcommander/media/play|pause|stop).
    * Only implemented for PowerPoint on Windows, via a keyboard-shortcut
    * toggle that requires the presenter to have a live PowerPoint slideshow
    * running independently of this bridge (see powerpointBridgeWin.ts's
