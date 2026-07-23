@@ -18,6 +18,7 @@ import NdiOutputControl from './components/NdiOutputControl'
 import GoogleSlidesSetup from './components/GoogleSlidesSetup'
 import LiveCaptureControl from './components/LiveCaptureControl'
 import OscControl from './components/OscControl'
+import AutoAdvanceControl from './components/AutoAdvanceControl'
 import { createLiveCapture } from './liveCapture'
 import type { CropRect } from './liveCapture'
 import { handleOscAction, allFeedback } from './osc/oscpoint'
@@ -56,6 +57,9 @@ function App(): React.JSX.Element {
   const [sections, setSections] = useState<OscSection[]>([])
   const [laserPointerEnabled, setLaserPointerEnabled] = useState(false)
   const [mediaDurationMs, setMediaDurationMs] = useState<number | null>(null)
+  const [autoAdvanceEnabled, setAutoAdvanceEnabled] = useState(false)
+  const [autoAdvanceIntervalSec, setAutoAdvanceIntervalSec] = useState(5)
+  const [autoAdvancePaused, setAutoAdvancePaused] = useState(false)
   const oscSnapshotRef = useRef<OscSnapshot>({
     currentPage: 1,
     totalPages: 0,
@@ -72,7 +76,9 @@ function App(): React.JSX.Element {
     filesFolderFullPath: null,
     sections: [],
     laserPointerEnabled: false,
-    mediaDurationMs: null
+    mediaDurationMs: null,
+    autoAdvanceEnabled: false,
+    autoAdvancePaused: false
   })
 
   // Live capture: an alternative, genuinely-live source for the Program/Next
@@ -111,6 +117,17 @@ function App(): React.JSX.Element {
   useEffect(() => {
     totalPagesRef.current = totalPages
   }, [totalPages])
+
+  // Timed auto-advance — stops at the last page rather than looping back
+  // to the first, matching a presenter's expectation of what "the end of
+  // the deck" means.
+  useEffect(() => {
+    if (!autoAdvanceEnabled || autoAdvancePaused || totalPages === 0) return
+    const timer = setInterval(() => {
+      setCurrentPage((p) => Math.min(p + 1, totalPagesRef.current || p))
+    }, autoAdvanceIntervalSec * 1000)
+    return () => clearInterval(timer)
+  }, [autoAdvanceEnabled, autoAdvancePaused, autoAdvanceIntervalSec, totalPages])
 
   useEffect(() => {
     window.api.system.info().then((info) => {
@@ -194,7 +211,9 @@ function App(): React.JSX.Element {
       filesFolderFullPath,
       sections,
       laserPointerEnabled,
-      mediaDurationMs
+      mediaDurationMs,
+      autoAdvanceEnabled,
+      autoAdvancePaused
     }
     oscSnapshotRef.current = snapshot
     if (oscRunning && oscFeedbacksEnabled) {
@@ -216,6 +235,8 @@ function App(): React.JSX.Element {
     sections,
     laserPointerEnabled,
     mediaDurationMs,
+    autoAdvanceEnabled,
+    autoAdvancePaused,
     oscRunning
   ])
 
@@ -331,6 +352,7 @@ function App(): React.JSX.Element {
         mediaPause: () => applyResultRef.current.activeSource?.mediaPause?.(),
         mediaPlayPause: () => applyResultRef.current.activeSource?.mediaPlay?.(),
         mediaStop: () => applyResultRef.current.activeSource?.mediaStop?.(),
+        setAutoAdvancePaused,
         setActionsEnabled: setOscActionsEnabled,
         setFeedbacksEnabled: setOscFeedbacksEnabled,
         refreshFeedback: () => {
@@ -696,6 +718,14 @@ function App(): React.JSX.Element {
             disabled={!activeSource}
             hideCursor={hideCursor}
             onHideCursorChange={setHideCursor}
+          />
+          <AutoAdvanceControl
+            enabled={autoAdvanceEnabled}
+            intervalSec={autoAdvanceIntervalSec}
+            paused={autoAdvancePaused}
+            onEnabledChange={setAutoAdvanceEnabled}
+            onIntervalChange={setAutoAdvanceIntervalSec}
+            onPausedChange={setAutoAdvancePaused}
           />
           <OscControl
             filesEnabled={filesEnabled}

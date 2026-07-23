@@ -130,7 +130,11 @@ desktop app — no PowerPoint or Keynote dependency.
   screen and sets it as the desktop wallpaper on every connected monitor
   — source-agnostic (works for every source type via the same
   `renderFrame` every SlideSource already implements). macOS and Windows
-  are fully covered, Linux is GNOME-only
+  are fully covered, Linux is GNOME-only. **Timed auto-advance** — an
+  optional "advance every N seconds" mode (stops at the last slide rather
+  than looping), with its own play/pause control next to the OSC
+  settings — `/oscpoint/slideshow/pause` and `/resume` suspend/resume it
+  remotely once it's turned on, and are a no-op if it was never enabled
 
 ## Architecture
 
