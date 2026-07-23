@@ -217,6 +217,48 @@ Surface integration are all built and verified. Keynote drive and live
 capture are macOS-only (no Windows equivalent exists yet for either); PDF,
 Google Slides, and Canva work on both platforms.
 
+## Inspiration & prior art
+
+This app's OSC control feature, its PowerPoint-media-control research, and
+its wallpaper-export feature were all shaped by looking at how existing
+remote-PowerPoint-control tools work. Being specific about what was and
+wasn't reused:
+
+- **[OSCPoint](https://github.com/phuvf/oscpoint)** — a Windows PowerPoint
+  add-in exposing an OSC API. It's closed-source, so nothing was copied
+  from it; its public documentation (`ACTIONS.md`/`FEEDBACKS.md`/`EVENTS.md`/
+  `PRESENTATION.md`) was read to design a comparable address space and the
+  two-port (action-in/feedback-out) architecture this app uses. That
+  address space originally mirrored OSCPoint's own (`/oscpoint/...`,
+  matching ports) for drop-in Companion compatibility; it's since been
+  renamed to `/presentcommander/...` and decoupled from OSCPoint entirely,
+  now that this app has its own dedicated Companion module instead.
+- **[benkuper/PowerPoint-OSC](https://github.com/benkuper/PowerPoint-OSC)**
+  and **[leonreucher/powerpoint-remote-websocket](https://github.com/leonreucher/powerpoint-remote-websocket)** —
+  two public, open-source VSTO (C#/.NET) PowerPoint add-ins. Their real
+  source was read specifically to answer one question during this app's
+  PowerPoint media-control work: is external COM automation of PowerPoint's
+  slideshow/media actually viable at all? Reading both confirmed that
+  `SlideShowSettings.Run()` is a normal, working COM call in practice, and
+  that neither add-in ever calls a direct Play()/Pause() method on a media
+  shape — only detects/counts them — which is what led to this app's own
+  Alt+P `SendKeys` toggle in `powerpointBridgeWin.ts` instead of a
+  (nonexistent) direct COM method. No C#/VSTO code was ported: both
+  reference add-ins run in-process inside PowerPoint, while this app
+  automates PowerPoint externally via PowerShell COM calls — a different
+  enough architecture that reuse wasn't really possible, only the factual
+  understanding of what PowerPoint's COM model does and doesn't expose.
+- **[Iris Down Remote Show Control](https://irisdown.co.uk/rsc.html)** — an
+  older, separate commercial PowerPoint add-in taking plain ASCII text
+  commands (`NEXT`, `PREV`, `GO`, `RUNCURRENT`, `SETBG`, …) over UDP/TCP,
+  with no feedback channel at all. Its command set overlaps conceptually
+  with several features here — slide navigation, starting from the current
+  slide, and notably `SETBG`'s "set desktop wallpaper to the current
+  slide," which this app's own wallpaper-export feature does the same
+  thing as. Nothing was read from its source (it isn't public) or its wire
+  format (plain text vs. this app's OSC) — the overlap is in feature
+  scope, not implementation.
+
 ## Project Setup
 
 ### Install
