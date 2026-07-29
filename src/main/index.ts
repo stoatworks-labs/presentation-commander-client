@@ -35,6 +35,39 @@ function notesPathFor(pdfPath: string): string {
   return pdfPath.replace(/\.pdf$/i, '.notes.json')
 }
 
+/**
+ * A sidecar written by `presentation-converter`.
+ *
+ * That tool records provenance alongside the notes (source deck, engines used,
+ * per-slide detail, and whether hidden slides shifted the page mapping), so the
+ * notes live under a `notes` key rather than at the top level.
+ */
+interface GeneratedSidecar {
+  schemaVersion: number
+  notes: Record<string, string>
+  slides?: Array<{ page: number | null; index: number; notes: string; hidden: boolean }>
+}
+
+function isGeneratedSidecar(value: unknown): value is GeneratedSidecar {
+  if (!value || typeof value !== 'object') return false
+  const candidate = value as Partial<GeneratedSidecar>
+  return typeof candidate.schemaVersion === 'number' && typeof candidate.notes === 'object'
+}
+
+/**
+ * Reads either sidecar shape: the generated one above, or the bare
+ * `{ "1": "note" }` map this app has always written itself.
+ */
+function notesFromSidecar(parsed: unknown): Record<number, string> {
+  const source = isGeneratedSidecar(parsed) ? parsed.notes : parsed
+  const notes: Record<number, string> = {}
+  if (!source || typeof source !== 'object') return notes
+  for (const [key, note] of Object.entries(source as Record<string, unknown>)) {
+    if (/^\d+$/.test(key) && typeof note === 'string') notes[Number(key)] = note
+  }
+  return notes
+}
+
 function listDisplays(): DisplayInfo[] {
   const primary = screen.getPrimaryDisplay()
   return screen.getAllDisplays().map((d, i) => ({
@@ -265,14 +298,40 @@ app.whenReady().then(() => {
   ipcMain.handle('notes:load', async (_e, pdfPath: string) => {
     try {
       const raw = await readFile(notesPathFor(pdfPath), 'utf-8')
-      return JSON.parse(raw) as Record<number, string>
+      return notesFromSidecar(JSON.parse(raw))
     } catch {
       return {}
     }
   })
 
   ipcMain.handle('notes:save', async (_e, pdfPath: string, notes: Record<number, string>) => {
-    await writeFile(notesPathFor(pdfPath), JSON.stringify(notes, null, 2), 'utf-8')
+    const path = notesPathFor(pdfPath)
+
+    // Preserve a generated sidecar's envelope. Writing the bare note map over
+    // it would discard the source deck, engine record and hidden-slide mapping
+    // that presentation-converter put there.
+    try {
+      const existing: unknown = JSON.parse(await readFile(path, 'utf-8'))
+      if (isGeneratedSidecar(existing)) {
+        const merged = {
+          ...existing,
+          notes: Object.fromEntries(Object.entries(notes).map(([page, note]) => [page, note])),
+          ...(existing.slides
+            ? {
+                slides: existing.slides.map((slide) =>
+                  slide.page === null ? slide : { ...slide, notes: notes[slide.page] ?? '' }
+                )
+              }
+            : {})
+        }
+        await writeFile(path, `${JSON.stringify(merged, null, 2)}\n`, 'utf-8')
+        return
+      }
+    } catch {
+      // No readable sidecar yet — fall through and write the plain map.
+    }
+
+    await writeFile(path, JSON.stringify(notes, null, 2), 'utf-8')
   })
 
   ipcMain.handle('server:connect', (_e, host: string, info: Omit<RegisterMessage, 'type'>) =>
