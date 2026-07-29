@@ -6,7 +6,7 @@
 > production.
 
 The presentation laptop companion app for
-[presentation-commander-server](https://github.com/allansargeant/presentation-commander-server).
+[presentation-commander-server](https://github.com/stoatworks-labs/presentation-commander-server).
 A bespoke PDF presentation engine built as an Electron + React + TypeScript
 desktop app — no PowerPoint or Keynote dependency.
 
@@ -105,7 +105,7 @@ desktop app — no PowerPoint or Keynote dependency.
   PowerPoint, Google Slides, Canva. Plain UDP rather than a Windows COM
   add-in, so it works on every platform this app ships for. A real
   Bitfocus Companion module ships alongside this app —
-  [companion-module-presentation-commander-client](https://github.com/allansargeant/companion-module-presentation-commander-client)
+  [companion-module-presentation-commander-client](https://github.com/stoatworks-labs/companion-module-presentation-commander-client)
   — for driving it from a Stream Deck or any other Companion surface. An
   optional, off-by-default "watched folder" feature lets OSC open a
   specific PDF/Keynote/PowerPoint file by filename without a dialog —
