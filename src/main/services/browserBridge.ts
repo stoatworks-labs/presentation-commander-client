@@ -1,5 +1,6 @@
 import { EventEmitter } from 'events'
 import { WebSocketServer, WebSocket } from 'ws'
+import { say } from '../diag/index.js'
 
 const PORT = 9801
 
@@ -87,7 +88,7 @@ class BrowserBridgeService extends EventEmitter {
       })
     })
 
-    this.wss.on('error', (err) => console.error('[browser-bridge] server error:', err))
+    this.wss.on('error', (err) => say.error('[browser-bridge] server error:', err))
   }
 
   stop(): void {
