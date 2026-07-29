@@ -10,6 +10,11 @@ The presentation laptop companion app for
 A bespoke PDF presentation engine built as an Electron + React + TypeScript
 desktop app — no PowerPoint or Keynote dependency.
 
+[![Watch it running — 37 seconds](docs/video-thumb.png)](https://www.youtube.com/watch?v=J2-2x-FDdw4)
+
+*A 37-second tour. Every frame is the real application, presenting a real PDF, driven over
+its own OSC control surface. It is shown running standalone, not paired to a server.*
+
 ![Presentation Commander Client main window: connection panel, Program Out display picker, and Open PDF control](docs/screenshot.png)
 
 ## What it does

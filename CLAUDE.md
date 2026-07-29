@@ -12,7 +12,7 @@ Electron client app for the Presentation Commander system (pairs with presentati
 ## Notes
 - Packaging depends on `scripts/clean-native-sdk-links.js` — don't skip it (native SDK symlinks).
 - Pairs with `presentation-commander-server`; keep their shared protocol in sync.
-- Two checkouts exist. **`~/presentation-commander-client` is the canonical one**; the copy in `~/Projects` is stale (17 commits behind as of 2026-07-29). Confirm which tree you're editing before committing.
+- One checkout, `~/Projects/presentation-commander-client`. The second tree at `~/presentation-commander-client` was removed on 2026-07-29; ignore any note that says it is canonical.
 - "Commit" = commit **and** push.
 
 ## Diagnostics
