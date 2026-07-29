@@ -18,6 +18,7 @@ import NdiOutputControl from './components/NdiOutputControl'
 import GoogleSlidesSetup from './components/GoogleSlidesSetup'
 import LiveCaptureControl from './components/LiveCaptureControl'
 import OscControl from './components/OscControl'
+import DiagnosticsPanel from './components/DiagnosticsPanel'
 import AutoAdvanceControl from './components/AutoAdvanceControl'
 import { createLiveCapture } from './liveCapture'
 import type { CropRect } from './liveCapture'
@@ -741,6 +742,7 @@ function App(): React.JSX.Element {
               })
             }}
           />
+          <DiagnosticsPanel />
           <button className="transport-btn" onClick={openPdf}>
             {filePath ? 'Open Different PDF…' : 'Open PDF…'}
           </button>
