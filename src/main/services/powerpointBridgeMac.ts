@@ -5,6 +5,7 @@ import { tmpdir } from 'os'
 import { join } from 'path'
 import { EventEmitter } from 'events'
 import type { PowerPointOpenResult } from './powerpointBridgeTypes'
+import { say } from '../diag/index.js'
 
 const execFileAsync = promisify(execFile)
 
@@ -190,7 +191,7 @@ export class PowerPointBridgeMac extends EventEmitter {
     try {
       await runAppleScript(STOP_SCRIPT)
     } catch (err) {
-      console.error('[powerpoint-bridge] Failed to stop slide show on close:', err)
+      say.error('[powerpoint-bridge] Failed to stop slide show on close:', err)
     }
   }
 
@@ -218,7 +219,7 @@ export class PowerPointBridgeMac extends EventEmitter {
             this.emit('current-slide-changed', page)
           }
         })
-        .catch((err) => console.error('[powerpoint-bridge] Failed to poll current slide:', err))
+        .catch((err) => say.error('[powerpoint-bridge] Failed to poll current slide:', err))
     }, POLL_INTERVAL_MS)
   }
 

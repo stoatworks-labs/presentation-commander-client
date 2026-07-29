@@ -14,3 +14,11 @@ Electron client app for the Presentation Commander system (pairs with presentati
 - Pairs with `presentation-commander-server`; keep their shared protocol in sync.
 - Two checkouts exist. **`~/presentation-commander-client` is the canonical one**; the copy in `~/Projects` is stale (17 commits behind as of 2026-07-29). Confirm which tree you're editing before committing.
 - "Commit" = commit **and** push.
+
+## Diagnostics
+
+Log via `say`/`log` from `src/main/diag/`, never `console`. `installElectronDiagnostics()`
+hooks `render-process-gone` and `child-process-gone` — a dead renderer raises nothing the
+main process's `uncaughtException` handler can see. `diag:collect` and `diag:openLogFolder`
+are registered over IPC but **no UI calls them yet**; wiring a button is outstanding.
+See [docs/diagnostics.md](docs/diagnostics.md).

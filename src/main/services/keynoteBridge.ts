@@ -4,6 +4,7 @@ import { mkdtemp, readdir } from 'fs/promises'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { EventEmitter } from 'events'
+import { say } from '../diag/index.js'
 
 const execFileAsync = promisify(execFile)
 
@@ -133,7 +134,7 @@ class KeynoteBridge extends EventEmitter {
     try {
       await runJxa(STOP_SCRIPT)
     } catch (err) {
-      console.error('[keynote-bridge] Failed to stop slideshow on close:', err)
+      say.error('[keynote-bridge] Failed to stop slideshow on close:', err)
     }
   }
 
@@ -147,7 +148,7 @@ class KeynoteBridge extends EventEmitter {
             this.emit('current-slide-changed', page)
           }
         })
-        .catch((err) => console.error('[keynote-bridge] Failed to poll current slide:', err))
+        .catch((err) => say.error('[keynote-bridge] Failed to poll current slide:', err))
     }, POLL_INTERVAL_MS)
   }
 
