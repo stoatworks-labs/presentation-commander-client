@@ -6,6 +6,7 @@ import { join } from 'path'
 import { EventEmitter } from 'events'
 import type { PowerPointOpenResult } from './powerpointBridgeTypes'
 import type { OscSection } from '../../shared/sections'
+import { say } from '../diag/index.js'
 
 const execFileAsync = promisify(execFile)
 
@@ -200,7 +201,7 @@ export class PowerPointBridgeWindows extends EventEmitter {
     try {
       sections = sectionsJson ? JSON.parse(sectionsJson) : []
     } catch (err) {
-      console.error('[powerpoint-bridge-win] Failed to parse sections JSON:', err)
+      say.error('[powerpoint-bridge-win] Failed to parse sections JSON:', err)
     }
 
     const notesBySlide: Record<number, string> = {}
@@ -245,7 +246,7 @@ export class PowerPointBridgeWindows extends EventEmitter {
   async mediaToggle(): Promise<void> {
     const result = await runPowerShell(MEDIA_TOGGLE_SCRIPT)
     if (result !== 'sent') {
-      console.warn(
+      say.warn(
         '[powerpoint-bridge-win] Media toggle no-op: no live slideshow window is running'
       )
     }
@@ -271,7 +272,7 @@ export class PowerPointBridgeWindows extends EventEmitter {
             this.emit('current-slide-changed', page)
           }
         })
-        .catch((err) => console.error('[powerpoint-bridge-win] Failed to poll current slide:', err))
+        .catch((err) => say.error('[powerpoint-bridge-win] Failed to poll current slide:', err))
     }, POLL_INTERVAL_MS)
   }
 
