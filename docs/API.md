@@ -148,7 +148,7 @@ play/pause/stop works.
 ## 2. Master Server link
 
 This app is a **WebSocket client** of the
-[Master Server](https://github.com/allansargeant/presentation-commander-server)'s hub, at
+[Master Server](https://github.com/stoatworks-labs/presentation-commander-server)'s hub, at
 `ws://<host>:9800`. Message shapes are in `src/shared/protocol.ts` and are **mirrored by hand**
 in the server repo — see [DEVELOPING.md](DEVELOPING.md).
 
@@ -213,7 +213,7 @@ extension. **Two shapes are read; one is written by this app.**
 ```
 
 **Generated sidecar** — what
-[presentation-converter](https://github.com/allansargeant/presentation-converter) writes:
+[presentation-converter](https://github.com/stoatworks-labs/presentation-converter) writes:
 
 ```json
 { "schemaVersion": 1,

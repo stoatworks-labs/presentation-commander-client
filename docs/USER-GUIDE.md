@@ -32,7 +32,7 @@ media commands are the same keyboard toggle underneath — there is no separate 
 **The PDF engine is the most capable and the most predictable.** It is the only source with
 clickable internal links, it works identically on both platforms, and it never depends on
 another application staying responsive. If you can export the deck to PDF, do — and use
-[presentation-converter](https://github.com/allansargeant/presentation-converter) if you want
+[presentation-converter](https://github.com/stoatworks-labs/presentation-converter) if you want
 the presenter notes carried across with it (§4).
 
 **Nothing drives PowerPoint's or Keynote's own fullscreen slideshow mode.** That was confirmed
@@ -114,7 +114,7 @@ Notes are per-slide and auto-save to a **`.notes.json` file next to the PDF**.
 
 Two file shapes are read: the bare `{"1": "note"}` map this app writes itself, and the richer
 sidecar written by
-[presentation-converter](https://github.com/allansargeant/presentation-converter), which carries
+[presentation-converter](https://github.com/stoatworks-labs/presentation-converter), which carries
 provenance — the source deck, the engines used, and whether hidden slides shifted the page
 numbering.
 
@@ -156,7 +156,7 @@ Consequences of that difference:
 
 ### From the Master Server
 
-Connect to the [Master Server](https://github.com/allansargeant/presentation-commander-server)'s
+Connect to the [Master Server](https://github.com/stoatworks-labs/presentation-commander-server)'s
 hub at `ws://<host>:9800`. The app registers by name, streams slide position and notes, and
 accepts next/previous-slide commands from the server's Control Surface.
 
@@ -171,7 +171,7 @@ accepts next/previous-slide commands from the server's Control Surface.
 ### From OSC / Stream Deck
 
 A UDP OSC address space at `/presentcommander/...`, with a dedicated
-[Companion module](https://github.com/allansargeant/companion-module-presentation-commander-client).
+[Companion module](https://github.com/stoatworks-labs/companion-module-presentation-commander-client).
 Default ports: **listens on 35551**, sends feedback to **127.0.0.1:35550**. Off by default.
 
 The full address list is in [API.md §1](API.md#1-osc-control). What catches people out:

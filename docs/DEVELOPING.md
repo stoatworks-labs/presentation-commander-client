@@ -13,8 +13,8 @@ sync by hand**:
 | Repo | Role |
 |---|---|
 | **presentation-commander-client** (this) | Runs on the presentation laptop |
-| [presentation-commander-server](https://github.com/allansargeant/presentation-commander-server) | Master control: routing, scenes, notes |
-| [companion-module-presentation-commander-client](https://github.com/allansargeant/companion-module-presentation-commander-client) | Companion module driving this app's OSC surface |
+| [presentation-commander-server](https://github.com/stoatworks-labs/presentation-commander-server) | Master control: routing, scenes, notes |
+| [companion-module-presentation-commander-client](https://github.com/stoatworks-labs/companion-module-presentation-commander-client) | Companion module driving this app's OSC surface |
 
 `src/shared/protocol.ts` is **mirrored by hand** in the server repo. A change to a message shape
 here can break the master server mid-show. The OSC address space in
