@@ -217,6 +217,14 @@ Surface integration are all built and verified. Keynote drive and live
 capture are macOS-only (no Windows equivalent exists yet for either); PDF,
 Google Slides, and Canva work on both platforms.
 
+## Documentation
+
+| Doc | Contents |
+|---|---|
+| [docs/USER-GUIDE.md](docs/USER-GUIDE.md) | Running a show: choosing a source, Program Out, NDI, live capture, remote control, troubleshooting |
+| [docs/API.md](docs/API.md) | The full OSC address space (actions + feedback), the server link, the extension bridge, and the `.notes.json` sidecar format |
+| [docs/DEVELOPING.md](docs/DEVELOPING.md) | Setup, the NDI SDK build dependency, adding a `SlideSource`, and the traps |
+
 ## Inspiration & prior art
 
 This app's OSC control feature, its PowerPoint-media-control research, and
