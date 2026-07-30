@@ -15,6 +15,7 @@ import { getOAuthStatus, setOAuthClientId } from './services/googleSlidesSetup'
 import { oscControlServer } from './services/oscControlServer'
 import { fileControl } from './services/fileControl'
 import { setWallpaper } from './services/wallpaper'
+import { setAsDefaultPdfHandler } from './services/defaultPdfHandler'
 import type { RegisterMessage, SlideStateMessage } from '../shared/protocol'
 import type { ProgramOutState, LaserPosition } from '../shared/programOut'
 import type { OscArg, OscConfig } from '../shared/osc'
@@ -48,8 +49,20 @@ interface DisplayInfo {
   primary: boolean
 }
 
+let mainWindow: BrowserWindow | null = null
 let programOutWindow: BrowserWindow | null = null
 let latestProgramOutState: ProgramOutState | null = null
+
+// Electron's `dialog.showOpenDialog` has separate overloads for "with parent
+// window" vs "no parent" — passing `BrowserWindow | undefined` satisfies
+// neither, so branch explicitly rather than fight the type.
+function showOpenDialogForMain(
+  options: Electron.OpenDialogOptions
+): Promise<Electron.OpenDialogReturnValue> {
+  return mainWindow && !mainWindow.isDestroyed()
+    ? dialog.showOpenDialog(mainWindow, options)
+    : dialog.showOpenDialog(options)
+}
 
 function notesPathFor(pdfPath: string): string {
   return pdfPath.replace(/\.pdf$/i, '.notes.json')
@@ -111,8 +124,8 @@ function loadRenderer(win: BrowserWindow, mode?: string): void {
   }
 }
 
-function createWindow(): BrowserWindow {
-  const mainWindow = new BrowserWindow({
+function createWindow(): void {
+  const win = new BrowserWindow({
     width: 1100,
     height: 760,
     minWidth: 780,
@@ -134,9 +147,10 @@ function createWindow(): BrowserWindow {
       backgroundThrottling: false
     }
   })
+  mainWindow = win
 
-  mainWindow.on('ready-to-show', () => {
-    mainWindow.show()
+  win.on('ready-to-show', () => {
+    win.show()
   })
 
   // Closing the console shouldn't leave Program Out orphaned and
@@ -145,32 +159,32 @@ function createWindow(): BrowserWindow {
   // fires while Program Out is still open, and closing it afterward
   // crashes trying to notify an already-destroyed mainWindow (see the
   // 'closed' handler below).
-  mainWindow.on('close', () => {
+  win.on('close', () => {
     programOutWindow?.close()
   })
 
   if (is.dev) {
-    mainWindow.webContents.on('console-message', (event) => {
+    win.webContents.on('console-message', (event) => {
       say.info(`[renderer:${event.level}] ${event.message}`)
     })
   }
 
-  mainWindow.webContents.setWindowOpenHandler((details) => {
+  win.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url)
     return { action: 'deny' }
   })
 
-  loadRenderer(mainWindow)
-
-  return mainWindow
+  loadRenderer(win)
 }
 
 function closeProgramOut(): void {
   programOutWindow?.close()
 }
 
-function openProgramOut(mainWindow: BrowserWindow, displayId?: number): void {
+function openProgramOut(displayId?: number): void {
   if (programOutWindow) return
+  const owner = mainWindow
+  if (!owner || owner.isDestroyed()) return
 
   const displays = screen.getAllDisplays()
   const primary = screen.getPrimaryDisplay()
@@ -211,11 +225,11 @@ function openProgramOut(mainWindow: BrowserWindow, displayId?: number): void {
 
   win.on('closed', () => {
     programOutWindow = null
-    // mainWindow may already be destroyed by the time this fires (e.g. the
-    // main window closed first and is tearing down Program Out as part of
-    // that, per the 'close' handler above) — sending to a destroyed window
-    // throws.
-    if (!mainWindow.isDestroyed()) {
+    // The main window may have been closed and reopened (or destroyed
+    // outright) by the time this fires — always resolve the *current*
+    // module-level mainWindow rather than the `owner` captured above, and
+    // guard against it being null/destroyed.
+    if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('program-out:open-changed', false)
     }
   })
@@ -226,7 +240,7 @@ function openProgramOut(mainWindow: BrowserWindow, displayId?: number): void {
 
   loadRenderer(win, 'program-out')
   programOutWindow = win
-  mainWindow.webContents.send('program-out:open-changed', true)
+  owner.webContents.send('program-out:open-changed', true)
 }
 
 app.whenReady().then(() => {
@@ -236,30 +250,35 @@ app.whenReady().then(() => {
     optimizer.watchWindowShortcuts(window)
   })
 
-  const mainWindow = createWindow()
+  createWindow()
 
-  // These listeners live for the app's whole lifetime and close over this
-  // one mainWindow instance — guarded against it being destroyed (e.g.
-  // mid-shutdown, or an event racing the window close) rather than
-  // throwing on a stale reference.
+  // These listeners live for the app's whole lifetime, not for any one
+  // window — they read the current module-level mainWindow (reassigned by
+  // createWindow on every dock-icon reactivation) and guard against it
+  // being null/destroyed (e.g. mid-shutdown, or an event racing the window
+  // close) rather than throwing on a stale reference.
   serverLink.on('status', (status) => {
-    if (!mainWindow.isDestroyed()) mainWindow.webContents.send('server:status', status)
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('server:status', status)
+    }
   })
   serverLink.on('command', (command) => {
-    if (!mainWindow.isDestroyed()) mainWindow.webContents.send('server:command', command)
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('server:command', command)
+    }
   })
   keynoteBridge.on('current-slide-changed', (page: number) => {
-    if (!mainWindow.isDestroyed()) {
+    if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('keynote:current-slide-changed', page)
     }
   })
   powerpointBridge.on('current-slide-changed', (page: number) => {
-    if (!mainWindow.isDestroyed()) {
+    if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('powerpoint:current-slide-changed', page)
     }
   })
   browserBridge.on('slide-update', (update) => {
-    if (!mainWindow.isDestroyed()) {
+    if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('browser-bridge:slide-update', update)
     }
   })
@@ -267,10 +286,12 @@ app.whenReady().then(() => {
   screenCaptureService.installDisplayMediaHandler()
 
   oscControlServer.on('action', (action) => {
-    if (!mainWindow.isDestroyed()) mainWindow.webContents.send('osc:action', action)
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('osc:action', action)
   })
   oscControlServer.on('status-changed', (running: boolean) => {
-    if (!mainWindow.isDestroyed()) mainWindow.webContents.send('osc:status-changed', running)
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('osc:status-changed', running)
+    }
   })
   oscControlServer.loadConfig().then((config) => {
     if (config.autoStart) oscControlServer.start()
@@ -296,7 +317,7 @@ app.whenReady().then(() => {
   }))
 
   ipcMain.handle('pdf:open', async () => {
-    const result = await dialog.showOpenDialog(mainWindow, {
+    const result = await showOpenDialogForMain({
       properties: ['openFile'],
       filters: [{ name: 'PDF', extensions: ['pdf'] }]
     })
@@ -307,7 +328,7 @@ app.whenReady().then(() => {
   })
 
   ipcMain.handle('keynote:open', async () => {
-    const result = await dialog.showOpenDialog(mainWindow, {
+    const result = await showOpenDialogForMain({
       properties: ['openFile'],
       filters: [{ name: 'Keynote', extensions: ['key'] }]
     })
@@ -320,7 +341,7 @@ app.whenReady().then(() => {
   ipcMain.handle('keynote:close', () => keynoteBridge.close())
 
   ipcMain.handle('powerpoint:open', async () => {
-    const result = await dialog.showOpenDialog(mainWindow, {
+    const result = await showOpenDialogForMain({
       properties: ['openFile'],
       filters: [{ name: 'PowerPoint', extensions: ['pptx', 'ppt'] }]
     })
@@ -395,9 +416,7 @@ app.whenReady().then(() => {
   )
 
   ipcMain.handle('program-out:list-displays', () => listDisplays())
-  ipcMain.handle('program-out:open', (_e, displayId?: number) =>
-    openProgramOut(mainWindow, displayId)
-  )
+  ipcMain.handle('program-out:open', (_e, displayId?: number) => openProgramOut(displayId))
   ipcMain.handle('program-out:close', () => closeProgramOut())
   ipcMain.handle('program-out:is-open', () => programOutWindow !== null)
   ipcMain.handle('program-out:push-state', (_e, state: ProgramOutState) => {
@@ -413,12 +432,12 @@ app.whenReady().then(() => {
   })
 
   screen.on('display-added', () => {
-    if (!mainWindow.isDestroyed()) {
+    if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('program-out:displays-changed', listDisplays())
     }
   })
   screen.on('display-removed', () => {
-    if (!mainWindow.isDestroyed()) {
+    if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('program-out:displays-changed', listDisplays())
     }
   })
@@ -459,13 +478,15 @@ app.whenReady().then(() => {
     setWallpaper(Buffer.from(base64Png, 'base64'))
   )
 
+  ipcMain.handle('defaultPdfApp:set', () => setAsDefaultPdfHandler())
+
   ipcMain.handle('files:get-config', () => fileControl.getConfig())
   ipcMain.handle('files:set-enabled', (_e, enabled: boolean) => fileControl.setEnabled(enabled))
   ipcMain.handle('files:set-folder-relative', (_e, relativePath: string) =>
     fileControl.setFolderPathRelativeToHome(relativePath)
   )
   ipcMain.handle('files:choose-folder', async () => {
-    const result = await dialog.showOpenDialog(mainWindow, {
+    const result = await showOpenDialogForMain({
       properties: ['openDirectory', 'createDirectory']
     })
     if (result.canceled || !result.filePaths[0]) return fileControl.getConfig()

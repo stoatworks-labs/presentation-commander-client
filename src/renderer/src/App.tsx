@@ -19,6 +19,7 @@ import GoogleSlidesSetup from './components/GoogleSlidesSetup'
 import LiveCaptureControl from './components/LiveCaptureControl'
 import OscControl from './components/OscControl'
 import DiagnosticsPanel from './components/DiagnosticsPanel'
+import SetDefaultPdfAppControl from './components/SetDefaultPdfAppControl'
 import AutoAdvanceControl from './components/AutoAdvanceControl'
 import { createLiveCapture } from './liveCapture'
 import type { CropRect } from './liveCapture'
@@ -742,6 +743,7 @@ function App(): React.JSX.Element {
               })
             }}
           />
+          <SetDefaultPdfAppControl />
           <DiagnosticsPanel />
           <button className="transport-btn" onClick={openPdf}>
             {filePath ? 'Open Different PDF…' : 'Open PDF…'}
