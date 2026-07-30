@@ -69,24 +69,27 @@ mac:
   target:
     - target: dmg
       arch: [x64, arm64]
-    - target: pkg
-      arch: [x64, arm64]
     - target: zip
       arch: [x64, arm64]
 dmg:
   artifactName: ${name}-${version}-${arch}.${ext}
-pkg:
-  artifactName: ${name}-${version}-${arch}.${ext}
-  installLocation: /Applications
 linux:
+  # Each target needs an explicit arch list. Without one electron-builder
+  # builds the host architecture only, which on this Mac silently produced
+  # arm64-only Linux packages and no x64 at all.
   target:
-    - AppImage
-    - deb
-    - rpm
+    - target: AppImage
+      arch: [x64, arm64]
+    - target: deb
+      arch: [x64, arm64]
+    - target: rpm
+      arch: [x64, arm64]
   maintainer: Allan Sargeant <allan.sargeant@gmail.com>
   category: AudioVideo
 appImage:
-  artifactName: ${name}-${version}.${ext}
+  # ${arch} is required: without it the x64 and arm64 AppImages resolve to
+  # the same filename and the second overwrites the first.
+  artifactName: ${name}-${version}-${arch}.${ext}
 npmRebuild: false
 publish:
   provider: generic
