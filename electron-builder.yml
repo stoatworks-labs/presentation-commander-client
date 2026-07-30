@@ -1,5 +1,18 @@
 appId: com.presentationcommander.client
 productName: Presentation Commander Client
+# Declares this app as a valid .pdf handler at build time (macOS
+# CFBundleDocumentTypes, Linux shared-mime-info + .desktop MimeType) — what
+# makes "Set as Default PDF App" possible at all on those two platforms.
+# Windows self-registers at runtime instead (see defaultPdfHandler.ts) so
+# both apps behave the same way there, rather than relying on NSIS's own
+# file-association support (which needs nsis.perMachine: true — a bigger,
+# unasked-for change to a per-machine/admin install).
+fileAssociations:
+  - ext: pdf
+    name: PDF Document
+    description: PDF Document
+    mimeType: application/pdf
+    role: Viewer
 directories:
   buildResources: build
 files:
@@ -25,21 +38,46 @@ asarUnpack:
   - '**/*.dll'
 win:
   executableName: presentation-commander-client
+  target:
+    - target: nsis
+      arch: [x64, arm64]
+    - target: portable
+      arch: [x64, arm64]
+    - target: zip
+      arch: [x64, arm64]
 nsis:
-  artifactName: ${name}-${version}-setup.${ext}
+  artifactName: ${name}-${version}-${arch}-setup.${ext}
   shortcutName: ${productName}
   uninstallDisplayName: ${productName}
   createDesktopShortcut: always
+portable:
+  artifactName: ${name}-${version}-${arch}-portable.${ext}
 mac:
+  entitlements: build/entitlements.mac.plist
   entitlementsInherit: build/entitlements.mac.plist
+  # Ad-hoc sign every target. Without this electron-builder skips signing
+  # entirely when no Developer ID is installed, and Gatekeeper on Apple
+  # Silicon then refuses the standalone arm64/x64 builds outright
+  # ("is damaged and can't be opened").
+  identity: '-'
   extendInfo:
     - NSCameraUsageDescription: Application requests access to the device's camera.
     - NSMicrophoneUsageDescription: Application requests access to the device's microphone.
     - NSDocumentsFolderUsageDescription: Application requests access to the user's Documents folder.
     - NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
   notarize: false
+  target:
+    - target: dmg
+      arch: [x64, arm64]
+    - target: pkg
+      arch: [x64, arm64]
+    - target: zip
+      arch: [x64, arm64]
 dmg:
-  artifactName: ${name}-${version}.${ext}
+  artifactName: ${name}-${version}-${arch}.${ext}
+pkg:
+  artifactName: ${name}-${version}-${arch}.${ext}
+  installLocation: /Applications
 linux:
   target:
     - AppImage
