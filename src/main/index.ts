@@ -49,6 +49,12 @@ interface DisplayInfo {
   primary: boolean
 }
 
+/** Distinct, self-describing window names — the operator's console and the
+ *  audience-facing Program Out are two very different things to pick out of a
+ *  window switcher, and both otherwise inherit index.html's <title> (the same
+ *  bug fixed in the sibling pdf-presenter-lite as #9). */
+const CONSOLE_WINDOW_TITLE = 'Presentation Commander Client — Console'
+
 let mainWindow: BrowserWindow | null = null
 let programOutWindow: BrowserWindow | null = null
 let latestProgramOutState: ProgramOutState | null = null
@@ -101,11 +107,26 @@ function notesFromSidecar(parsed: unknown): Record<number, string> {
   return notes
 }
 
+/** The OS's own name for a screen where it has one, and a stable positional
+ *  fallback where it doesn't (Windows frequently reports an empty label). */
+function displayLabel(display: Electron.Display, index: number): string {
+  return display.label || (display.internal ? 'Built-in Display' : `Display ${index + 1}`)
+}
+
+/** Both windows render the same index.html, so both inherit its <title> the
+ *  moment their page loads. Refusing the page's title is what makes a
+ *  per-window name stick; the `title:` constructor option alone does not
+ *  survive the load. */
+function nameWindow(win: BrowserWindow, title: string): void {
+  win.on('page-title-updated', (event) => event.preventDefault())
+  win.setTitle(title)
+}
+
 function listDisplays(): DisplayInfo[] {
   const primary = screen.getPrimaryDisplay()
   return screen.getAllDisplays().map((d, i) => ({
     id: d.id,
-    label: d.label || (d.internal ? 'Built-in Display' : `Display ${i + 1}`),
+    label: displayLabel(d, i),
     width: d.bounds.width,
     height: d.bounds.height,
     internal: d.internal ?? false,
@@ -131,6 +152,7 @@ function createWindow(): void {
     minWidth: 780,
     minHeight: 560,
     show: false,
+    title: CONSOLE_WINDOW_TITLE,
     autoHideMenuBar: true,
     backgroundColor: '#0f1013',
     ...(process.platform === 'linux' ? { icon } : {}),
@@ -148,6 +170,7 @@ function createWindow(): void {
     }
   })
   mainWindow = win
+  nameWindow(win, CONSOLE_WINDOW_TITLE)
 
   win.on('ready-to-show', () => {
     win.show()
@@ -205,6 +228,14 @@ function openProgramOut(displayId?: number): void {
       sandbox: false
     }
   })
+
+  // Named after the display it is actually on, because on a multi-screen rig
+  // "which output is this?" is the question the window manager is being asked
+  // in the first place.
+  nameWindow(
+    win,
+    `Presentation Commander Client — Program Out (${displayLabel(target, displays.indexOf(target))})`
+  )
 
   // Setting fullscreen at construction time can leave the window invisible
   // to the OS window server on macOS; show it plain first, then transition.
