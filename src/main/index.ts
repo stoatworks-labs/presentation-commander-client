@@ -52,7 +52,7 @@ interface DisplayInfo {
 /** Distinct, self-describing window names — the operator's console and the
  *  audience-facing Program Out are two very different things to pick out of a
  *  window switcher, and both otherwise inherit index.html's <title> (the same
- *  bug fixed in the sibling pdf-presenter-lite as #9). */
+ *  bug fixed in the sibling pdf-presenter as #9). */
 const CONSOLE_WINDOW_TITLE = 'Presentation Commander Client — Console'
 
 let mainWindow: BrowserWindow | null = null
@@ -178,7 +178,7 @@ function createWindow(): void {
 
   // Closing the console shouldn't leave Program Out orphaned and
   // unreachable — confirmed live as a real bug (Windows, in the sibling
-  // pdf-presenter-lite app, same shape here): 'window-all-closed' never
+  // pdf-presenter app, same shape here): 'window-all-closed' never
   // fires while Program Out is still open, and closing it afterward
   // crashes trying to notify an already-destroyed mainWindow (see the
   // 'closed' handler below).
