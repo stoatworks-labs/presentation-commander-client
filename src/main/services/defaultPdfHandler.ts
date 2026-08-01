@@ -45,7 +45,7 @@ export async function setAsDefaultPdfHandler(): Promise<SetDefaultPdfResult> {
  * nsis.perMachine is set (a bigger, unasked-for change: per-machine installs
  * need admin during setup). Simpler and more robust to do the same
  * runtime self-registration on both apps rather than have Windows behave
- * differently here than in the sibling pdf-presenter-lite app: on button
+ * differently here than in the sibling pdf-presenter app: on button
  * click, self-register the standard user-scope (HKCU, no admin needed)
  * registry keys that make an app *eligible* to appear in "Open with" /
  * Default Apps — a ProgID pointing at this executable, and a
