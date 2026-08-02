@@ -1,4 +1,4 @@
-# Presentation Commander Client — User Guide
+# Presentation Commander Client user guide
 
 This runs on the presentation laptop. It puts the deck on screen, sends it out over NDI, keeps
 presenter notes, and takes remote control from a Stream Deck or the Master Server.
@@ -8,8 +8,7 @@ show with it, and what will catch you out.
 
 ---
 
-## 0. Choose your source first — the capabilities differ
-
+## Choose your source first — the capabilities differ
 Everything else follows from this choice, because what a source can do depends on what the
 underlying application actually exposes to automation. These are researched limits, not missing
 work.
@@ -33,7 +32,7 @@ media commands are the same keyboard toggle underneath — there is no separate 
 clickable internal links, it works identically on both platforms, and it never depends on
 another application staying responsive. If you can export the deck to PDF, do — and use
 [presentation-converter](https://github.com/stoatworks-labs/presentation-converter) if you want
-the presenter notes carried across with it (§4).
+the presenter notes carried across with it ([Presenter notes](#presenter-notes)).
 
 **Nothing drives PowerPoint's or Keynote's own fullscreen slideshow mode.** That was confirmed
 unreliable under automation and virtualization on both platforms. This app drives the *editing
@@ -42,8 +41,7 @@ audience actually sees, so the distinction doesn't cost you anything.
 
 ---
 
-## 1. Program Out
-
+## Program Out
 A second, fullscreen, chrome-free window showing only the current slide, for a projector or
 confidence monitor. Pick which connected display it opens on from the dropdown.
 
@@ -53,8 +51,7 @@ confidence monitor. Pick which connected display it opens on from the dropdown.
 - **NDI is independent of this window.** You can send NDI without opening Program Out, and vice
   versa — NDI is a network output, not a local display.
 
-## 2. NDI output
-
+## NDI output
 Two independent, separately-toggleable senders:
 
 - **Program Out** — the current slide.
@@ -82,8 +79,7 @@ Security → Screen Recording, and restart the app.
 
 ---
 
-## 3. Driving Keynote and PowerPoint
-
+## Driving Keynote and PowerPoint
 The app talks to a **currently-open document** in the real application — via AppleScript/JXA on
 macOS, PowerShell COM on Windows. Open the deck in Keynote or PowerPoint first, then connect.
 
@@ -108,8 +104,7 @@ Things worth knowing:
 
 ---
 
-## 4. Presenter notes
-
+## Presenter notes
 Notes are per-slide and auto-save to a **`.notes.json` file next to the PDF**.
 
 Two file shapes are read: the bare `{"1": "note"}` map this app writes itself, and the richer
@@ -128,8 +123,7 @@ slides, that mapping is where to look.
 
 ---
 
-## 5. Google Slides and Canva
-
+## Google Slides and Canva
 Both need the unpacked Chrome extension in `extension/` — load it at `chrome://extensions` →
 Developer mode → Load unpacked. Both relay through a local WebSocket bridge on port **9801**.
 
@@ -152,8 +146,7 @@ Consequences of that difference:
 
 ---
 
-## 6. Remote control
-
+## Remote control
 ### From the Master Server
 
 Connect to the [Master Server](https://github.com/stoatworks-labs/presentation-commander-server)'s
@@ -174,7 +167,7 @@ A UDP OSC address space at `/presentcommander/...`, with a dedicated
 [Companion module](https://github.com/stoatworks-labs/companion-module-presentation-commander-client).
 Default ports: **listens on 35551**, sends feedback to **127.0.0.1:35550**. Off by default.
 
-The full address list is in [API.md §1](API.md#1-osc-control). What catches people out:
+The full address list is in [API.md [Program Out](#program-out)](API.md#1-osc-control). What catches people out:
 
 - **Actions must be enabled.** While disabled, every message except `actions/enable` is
   **dropped silently**. This is the number one cause of "the button does nothing".
@@ -212,43 +205,41 @@ refusal is a silent no-op, not an error.
 
 ---
 
-## 7. Troubleshooting
-
+## Troubleshooting
 | Symptom | Cause |
 |---|---|
-| **OSC does nothing at all** | Actions are disabled. Send `/presentcommander/actions/enable` first (§6). |
+| **OSC does nothing at all** | Actions are disabled. Send `/presentcommander/actions/enable` first ([Remote control](#remote-control)). |
 | **No OSC feedback** | Feedbacks are disabled, or the feedback host/port is wrong. `feedbacks/refresh` always sends — use it to test. |
-| **`pause` does nothing** | Auto-advance was never turned on (§6). |
-| **Blackout turned off when I asked for on** | A malformed argument is treated as absent, and no argument means toggle (§6). |
-| **`goto/section` does nothing** | Case mismatch, or the source has no sections at all — only PDF and PowerPoint-on-Windows do (§0). |
-| **Media commands do nothing** | Only PowerPoint on Windows, and only with a live slideshow running separately. On macOS they're accepted and ignored (§3). |
-| **Notes garbled / non-ASCII wrong** | Read `notes-utf8` (blob) rather than `notes` (string) (API.md §1). |
-| **Server link silently stopped working** | It dropped and there is no auto-reconnect (§6). |
-| **Two laptops show as one on the server** | They registered with the same name (§6). |
-| **Keynote/PowerPoint bridge acts like the deck is empty** | macOS Automation permission was denied (§3). |
-| **Live capture is black or stalls** | Screen Recording permission, or the wrong display picked. Capture is per-display, not per-window (§2). |
-| **PowerPoint deck loads slowly on macOS, clipboard keeps changing** | Expected — frames come one at a time through the clipboard because bulk export is a silent no-op there (§3). |
-| **Sections changed mid-show and didn't update** | They're read once at open (§3). |
-| **Google Slides notes are blank or late** | They arrive a beat after the frame, and need the OAuth client ID plus an extension reload (§5). |
-| **Canva notes blank** | Canva only renders the element the app reads when notes are non-empty (§5). |
+| **`pause` does nothing** | Auto-advance was never turned on ([Remote control](#remote-control)). |
+| **Blackout turned off when I asked for on** | A malformed argument is treated as absent, and no argument means toggle ([Remote control](#remote-control)). |
+| **`goto/section` does nothing** | Case mismatch, or the source has no sections at all — only PDF and PowerPoint-on-Windows do ([Choose your source first — the capabilities differ](#choose-your-source-first-the-capabilities-differ)). |
+| **Media commands do nothing** | Only PowerPoint on Windows, and only with a live slideshow running separately. On macOS they're accepted and ignored ([Driving Keynote and PowerPoint](#driving-keynote-and-powerpoint)). |
+| **Notes garbled / non-ASCII wrong** | Read `notes-utf8` (blob) rather than `notes` (string) (API.md [Program Out](#program-out)). |
+| **Server link silently stopped working** | It dropped and there is no auto-reconnect ([Remote control](#remote-control)). |
+| **Two laptops show as one on the server** | They registered with the same name ([Remote control](#remote-control)). |
+| **Keynote/PowerPoint bridge acts like the deck is empty** | macOS Automation permission was denied ([Driving Keynote and PowerPoint](#driving-keynote-and-powerpoint)). |
+| **Live capture is black or stalls** | Screen Recording permission, or the wrong display picked. Capture is per-display, not per-window ([NDI output](#ndi-output)). |
+| **PowerPoint deck loads slowly on macOS, clipboard keeps changing** | Expected — frames come one at a time through the clipboard because bulk export is a silent no-op there ([Driving Keynote and PowerPoint](#driving-keynote-and-powerpoint)). |
+| **Sections changed mid-show and didn't update** | They're read once at open ([Driving Keynote and PowerPoint](#driving-keynote-and-powerpoint)). |
+| **Google Slides notes are blank or late** | They arrive a beat after the frame, and need the OAuth client ID plus an extension reload ([Google Slides and Canva](#google-slides-and-canva)). |
+| **Canva notes blank** | Canva only renders the element the app reads when notes are non-empty ([Google Slides and Canva](#google-slides-and-canva)). |
 | **Extension stops relaying after a while** | MV3 service worker suspension. The extension reconnects defensively on every message for this reason; if it persists, reload it at `chrome://extensions`. |
-| **Notes off by a slide or two** | Hidden slides shift page numbering — slide count ≠ page count (§4). |
-| **NDI receiver shows a frozen frame** | Not necessarily dead — the sender repeats the last frame every second by design (§2). |
+| **Notes off by a slide or two** | Hidden slides shift page numbering — slide count ≠ page count ([Presenter notes](#presenter-notes)). |
+| **NDI receiver shows a frozen frame** | Not necessarily dead — the sender repeats the last frame every second by design ([NDI output](#ndi-output)). |
 | **macOS says the app is damaged** | Unsigned build; see the README's Gatekeeper section. |
 
 ---
 
-## 8. Before a show
-
-1. Pick the source type deliberately (§0) — PDF if you can.
+## Before a show
+1. Pick the source type deliberately ([Choose your source first — the capabilities differ](#choose-your-source-first-the-capabilities-differ)) — PDF if you can.
 2. Grant macOS **Automation** and **Screen Recording** permissions and restart, if you need
-   Keynote/PowerPoint or live capture (§3).
+   Keynote/PowerPoint or live capture ([Driving Keynote and PowerPoint](#driving-keynote-and-powerpoint)).
 3. Open the deck in its app *first*, then connect the bridge.
-4. Check notes came across, especially on a deck with hidden slides (§4).
-5. Give the machine a distinct name before connecting to the server (§6).
-6. Enable OSC **actions and feedbacks** and prove one button before you rely on the wall (§6).
+4. Check notes came across, especially on a deck with hidden slides ([Presenter notes](#presenter-notes)).
+5. Give the machine a distinct name before connecting to the server ([Remote control](#remote-control)).
+6. Enable OSC **actions and feedbacks** and prove one button before you rely on the wall ([Remote control](#remote-control)).
 7. Check the NDI receivers actually see both senders.
-8. Keep the control network private — neither OSC nor the server link is authenticated (§6).
+8. Keep the control network private — neither OSC nor the server link is authenticated ([Remote control](#remote-control)).
 
 ---
 
