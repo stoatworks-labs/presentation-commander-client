@@ -767,6 +767,11 @@ function App(): React.JSX.Element {
           <button className="transport-btn" onClick={connectCanva}>
             Connect Canva…
           </button>
+          {/* Opens the shared About dialog — see public/about.js, which delegates
+              this attribute from the document, so nothing needs importing here. */}
+          <button className="transport-btn" type="button" data-stoatworks-about>
+            About
+          </button>
         </div>
       </div>
 
