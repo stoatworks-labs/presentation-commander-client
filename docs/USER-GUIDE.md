@@ -212,7 +212,7 @@ refusal is a silent no-op, not an error.
 | **No OSC feedback** | Feedbacks are disabled, or the feedback host/port is wrong. `feedbacks/refresh` always sends — use it to test. |
 | **`pause` does nothing** | Auto-advance was never turned on ([Remote control](#remote-control)). |
 | **Blackout turned off when I asked for on** | A malformed argument is treated as absent, and no argument means toggle ([Remote control](#remote-control)). |
-| **`goto/section` does nothing** | Case mismatch, or the source has no sections at all — only PDF and PowerPoint-on-Windows do ([Choose your source first — the capabilities differ](#choose-your-source-first-the-capabilities-differ)). |
+| **`goto/section` does nothing** | Case mismatch, or the source has no sections at all — only PDF and PowerPoint-on-Windows do ([Choose your source first — the capabilities differ](#choose-your-source-first--the-capabilities-differ)). |
 | **Media commands do nothing** | Only PowerPoint on Windows, and only with a live slideshow running separately. On macOS they're accepted and ignored ([Driving Keynote and PowerPoint](#driving-keynote-and-powerpoint)). |
 | **Notes garbled / non-ASCII wrong** | Read `notes-utf8` (blob) rather than `notes` (string) (API.md [Program Out](#program-out)). |
 | **Server link silently stopped working** | It dropped and there is no auto-reconnect ([Remote control](#remote-control)). |
@@ -231,7 +231,7 @@ refusal is a silent no-op, not an error.
 ---
 
 ## Before a show
-1. Pick the source type deliberately ([Choose your source first — the capabilities differ](#choose-your-source-first-the-capabilities-differ)) — PDF if you can.
+1. Pick the source type deliberately ([Choose your source first — the capabilities differ](#choose-your-source-first--the-capabilities-differ)) — PDF if you can.
 2. Grant macOS **Automation** and **Screen Recording** permissions and restart, if you need
    Keynote/PowerPoint or live capture ([Driving Keynote and PowerPoint](#driving-keynote-and-powerpoint)).
 3. Open the deck in its app *first*, then connect the bridge.
