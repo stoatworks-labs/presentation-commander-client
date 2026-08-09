@@ -59,6 +59,18 @@ Consequences worth keeping in mind: a slow or blocking render is visible to an a
 navigation must stay responsive under remote control from the server; and failure should hold
 the current slide rather than showing an error surface to a room.
 
+**Transitions are ours to implement, and only for PDF.** `renderer/src/transitions.ts` plays
+the transition by snapshotting the outgoing slide off the live canvas and animating that copy
+over the top — so it never re-renders through pdf.js to hold the old slide. It relies on
+`pdf.ts` double-buffering its render (the visible canvas keeps the old page until the new one
+is complete), which is what lets the incoming layer be positioned before the render is
+awaited. Keynote/PowerPoint/Google Slides/Canva play their own transitions, so `ProgramOut`
+cuts for `kind: 'image'` states.
+
+`shared/transitions.ts`, `renderer/src/transitions.ts`, `renderer/src/transitionStorage.ts`
+and `components/TransitionControl.tsx` are **copied to `pdf-presenter`**, the same debt
+marker as `pdf.ts`. Change one, change both.
+
 ## 6. Conventions
 
 - "Commit" means commit **and** push. (Confirm the tree first — see §1.)

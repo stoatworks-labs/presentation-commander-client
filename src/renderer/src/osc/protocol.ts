@@ -1,6 +1,12 @@
 import type { OscArg, OscAction } from '../../../shared/osc'
 import type { ScreenBlank } from '../../../shared/programOut'
 import type { OscSection } from '../../../shared/sections'
+import type { TransitionSettings } from '../../../shared/transitions'
+import {
+  clampTransitionMs,
+  isTransitionDirection,
+  isTransitionEffect
+} from '../../../shared/transitions'
 
 export interface OscMessage {
   address: string
@@ -36,6 +42,9 @@ export interface OscSnapshot {
    * timer, they don't turn the feature on from cold. */
   autoAdvanceEnabled: boolean
   autoAdvancePaused: boolean
+  /** The one global slide transition. Reported whatever the active source is,
+   * but only acted on by PDF sources (see shared/transitions.ts). */
+  transition: TransitionSettings
 }
 
 export interface OscHandlers {
@@ -51,6 +60,10 @@ export interface OscHandlers {
   setWallpaper(width?: number, height?: number): void
   /** No-op when autoAdvanceEnabled is false — checked by the dispatcher. */
   setAutoAdvancePaused(paused: boolean): void
+  /** Patched, not replaced: setting the duration must not reset the effect.
+   * The dispatcher validates and clamps before calling, so an unknown effect
+   * name is dropped rather than arriving here. */
+  setTransition(patch: Partial<TransitionSettings>): void
   setActionsEnabled(enabled: boolean): void
   setFeedbacksEnabled(enabled: boolean): void
   /** All four call through to the same underlying toggle on every source
@@ -230,6 +243,30 @@ export function mediaFeedback(s: OscSnapshot): OscMessage[] {
   ]
 }
 
+/** Builds the /presentcommander/slideshow/transition* feedback messages. The
+ * addresses deliberately differ from the `set*` actions that change them, so
+ * feedback looped back into the app can't drive it. */
+export function transitionFeedback(s: OscSnapshot): OscMessage[] {
+  return [
+    {
+      address: '/presentcommander/slideshow/transition',
+      args: [argStr(JSON.stringify(s.transition))]
+    },
+    {
+      address: '/presentcommander/slideshow/transition/effect',
+      args: [argStr(s.transition.effect)]
+    },
+    {
+      address: '/presentcommander/slideshow/transition/direction',
+      args: [argStr(s.transition.direction)]
+    },
+    {
+      address: '/presentcommander/slideshow/transition/duration',
+      args: [argInt(s.transition.durationMs)]
+    }
+  ]
+}
+
 export function allFeedback(s: OscSnapshot): OscMessage[] {
   return [
     ...presentationFeedback(s),
@@ -237,7 +274,8 @@ export function allFeedback(s: OscSnapshot): OscMessage[] {
     ...notesFeedback(s),
     ...sectionFeedback(s),
     ...filesFeedback(s),
-    ...mediaFeedback(s)
+    ...mediaFeedback(s),
+    ...transitionFeedback(s)
   ]
 }
 
@@ -325,6 +363,27 @@ export function handleOscAction(
     case '/presentcommander/slideshow/laserpointer': {
       const on = argToBoolean(args[0])
       handlers.setLaserPointerEnabled(on === undefined ? !snapshot.laserPointerEnabled : on)
+      return
+    }
+    case '/presentcommander/slideshow/transition/seteffect': {
+      const effect = argToString(args[0])
+      // Unknown names are ignored rather than falling back to a default: a
+      // typo in a Companion button must not silently change the look of the
+      // show to something nobody chose.
+      if (effect === undefined || !isTransitionEffect(effect)) return
+      handlers.setTransition({ effect })
+      return
+    }
+    case '/presentcommander/slideshow/transition/setdirection': {
+      const direction = argToString(args[0])
+      if (direction === undefined || !isTransitionDirection(direction)) return
+      handlers.setTransition({ direction })
+      return
+    }
+    case '/presentcommander/slideshow/transition/setduration': {
+      const ms = argToNumber(args[0])
+      if (ms === undefined) return
+      handlers.setTransition({ durationMs: clampTransitionMs(ms) })
       return
     }
     case '/presentcommander/slideshow/setwallpaper':
