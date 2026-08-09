@@ -1,3 +1,5 @@
+import type { TransitionSettings } from './transitions'
+
 /** Blanks the Program Out window to a solid color instead of the current
  * slide — matches PowerPoint's "B"/"W" presenter shortcuts, for hiding
  * content without losing your place. */
@@ -26,6 +28,10 @@ export type ProgramOutState = (
    * position is pushed separately (see LaserPosition below), since it
    * updates far more often than the rest of this state. */
   laserPointerEnabled?: boolean
+  /** How Program Out moves between slides. Only the `pdf` kind acts on it —
+   * the app-backed sources bring their own transitions (see
+   * shared/transitions.ts). */
+  transition?: TransitionSettings
 }
 
 /** Normalized (0-100) position over the current slide's own box — lines up

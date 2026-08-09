@@ -75,6 +75,9 @@ through to the switch's default case and is silently ignored — not treated as 
 | `/presentcommander/slideshow/white` | bool? | Same. Black and white are one `screenBlank` state — setting one clears the other. |
 | `/presentcommander/slideshow/laserpointer` | bool? | Omit to toggle |
 | `/presentcommander/slideshow/setwallpaper` | int?, int? | Renders the current screen and sets it as desktop wallpaper. Defaults 1920×1080. |
+| `/presentcommander/slideshow/transition/seteffect` | string | One of `cut`, `fade`, `dip-black`, `dip-white`, `push`, `wipe`, `cover`, `uncover`, `zoom`. **An unrecognised name is a silent no-op**, not a reset to a default. |
+| `/presentcommander/slideshow/transition/setdirection` | string | One of `left`, `right`, `top`, `bottom`, `top-left`, `top-right`, `bottom-left`, `bottom-right` — the edge the *new* slide comes from. Only `push`/`wipe`/`cover`/`uncover` read it; setting it under another effect is remembered, not discarded. |
+| `/presentcommander/slideshow/transition/setduration` | int/float | Milliseconds, **clamped to 50…5000**. Covers the whole transition, both halves of a dip included. |
 | `/presentcommander/slideshow/pause` | — | No-op unless auto-advance is enabled |
 | `/presentcommander/slideshow/resume` | — | Same |
 | `/presentcommander/files/setpath` | string | **Relative to the user's home directory**, always |
@@ -91,6 +94,12 @@ Booleans accept any of those (non-zero = true) plus the OSC `true`/`false` types
 values can be sent that way. An argument of an unusable type is treated as *absent*, which for
 `black`/`white`/`laserpointer` means **it toggles instead of setting** — a malformed "turn
 blackout on" can therefore turn it off.
+
+**Transitions apply to PDF sources only.** Keynote, PowerPoint, Google Slides and Canva play
+their own transitions, so Program Out cuts for those regardless of what is set here. The
+setting is still accepted and still reported back — it simply has no effect until a PDF is the
+active source. It is also global: there is no per-slide transition, and a PDF has nowhere to
+store one.
 
 **`files/open` rejects path traversal.** Anything containing `/`, `\` or `..` is refused, as is
 any extension outside `.pdf`, `.key`, `.pptx`, `.ppt`. Refusal is a silent no-op returning
@@ -119,6 +128,10 @@ Sent to `remoteHost:remotePort` when feedbacks are enabled.
 | `/presentcommander/files/activefolder` | string | Relative to home; `''` if unset |
 | `/presentcommander/files/activefolder/fullpath` | string | |
 | `/presentcommander/slideshow/media/duration` | int (ms) | **Not sent unless a duration is known** |
+| `/presentcommander/slideshow/transition` | string | A **JSON document**: `{"effect":"…","direction":"…","durationMs":500}` |
+| `/presentcommander/slideshow/transition/effect` | string | |
+| `/presentcommander/slideshow/transition/direction` | string | Reported whatever the effect is |
+| `/presentcommander/slideshow/transition/duration` | int (ms) | |
 
 Several of these are **absent rather than zero** when they don't apply, which is deliberate: a
 controller can tell "no sections exist" apart from "section 0 of 0", and there is no fabricated

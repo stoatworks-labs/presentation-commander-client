@@ -1,6 +1,8 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ConnectionStatus } from '../../shared/protocol'
 import type { ScreenBlank } from '../../shared/programOut'
+import type { TransitionSettings } from '../../shared/transitions'
+import { loadTransitionSettings, saveTransitionSettings } from './transitionStorage'
 import type { SlideSource } from './sources/types'
 import './App.css'
 import { loadPdf } from './pdf'
@@ -21,6 +23,7 @@ import OscControl from './components/OscControl'
 import DiagnosticsPanel from './components/DiagnosticsPanel'
 import SetDefaultPdfAppControl from './components/SetDefaultPdfAppControl'
 import AutoAdvanceControl from './components/AutoAdvanceControl'
+import TransitionControl from './components/TransitionControl'
 import { createLiveCapture } from './liveCapture'
 import type { CropRect } from './liveCapture'
 import { handleOscAction, allFeedback } from './osc/protocol'
@@ -62,6 +65,9 @@ function App(): React.JSX.Element {
   const [autoAdvanceEnabled, setAutoAdvanceEnabled] = useState(false)
   const [autoAdvanceIntervalSec, setAutoAdvanceIntervalSec] = useState(5)
   const [autoAdvancePaused, setAutoAdvancePaused] = useState(false)
+  // Restored from the last session rather than reset on every launch — see
+  // transitionStorage.ts.
+  const [transition, setTransitionState] = useState<TransitionSettings>(loadTransitionSettings)
   const oscSnapshotRef = useRef<OscSnapshot>({
     currentPage: 1,
     totalPages: 0,
@@ -80,8 +86,19 @@ function App(): React.JSX.Element {
     laserPointerEnabled: false,
     mediaDurationMs: null,
     autoAdvanceEnabled: false,
-    autoAdvancePaused: false
+    autoAdvancePaused: false,
+    transition: loadTransitionSettings()
   })
+
+  // Patch rather than replace, so an OSC message that sets only the duration
+  // leaves the effect and direction alone.
+  const applyTransition = useCallback((patch: Partial<TransitionSettings>): void => {
+    setTransitionState((current) => ({ ...current, ...patch }))
+  }, [])
+
+  useEffect(() => {
+    saveTransitionSettings(transition)
+  }, [transition])
 
   // Live capture: an alternative, genuinely-live source for the Program/Next
   // NDI streams (real animations/transitions/video, unlike the rest of the
@@ -145,9 +162,10 @@ function App(): React.JSX.Element {
       ...activeSource.getProgramOutPayload(currentPage),
       screenBlank,
       hideCursor,
-      laserPointerEnabled
+      laserPointerEnabled,
+      transition
     })
-  }, [activeSource, currentPage, screenBlank, hideCursor, laserPointerEnabled])
+  }, [activeSource, currentPage, screenBlank, hideCursor, laserPointerEnabled, transition])
 
   useEffect(() => {
     window.api.ndiOutput.isActive(NDI_STREAM_PROGRAM).then(setNdiActive)
@@ -215,7 +233,8 @@ function App(): React.JSX.Element {
       laserPointerEnabled,
       mediaDurationMs,
       autoAdvanceEnabled,
-      autoAdvancePaused
+      autoAdvancePaused,
+      transition
     }
     oscSnapshotRef.current = snapshot
     if (oscRunning && oscFeedbacksEnabled) {
@@ -239,6 +258,7 @@ function App(): React.JSX.Element {
     mediaDurationMs,
     autoAdvanceEnabled,
     autoAdvancePaused,
+    transition,
     oscRunning
   ])
 
@@ -355,6 +375,7 @@ function App(): React.JSX.Element {
         mediaPlayPause: () => applyResultRef.current.activeSource?.mediaPlay?.(),
         mediaStop: () => applyResultRef.current.activeSource?.mediaStop?.(),
         setAutoAdvancePaused,
+        setTransition: applyTransition,
         setActionsEnabled: setOscActionsEnabled,
         setFeedbacksEnabled: setOscFeedbacksEnabled,
         refreshFeedback: () => {
@@ -385,7 +406,7 @@ function App(): React.JSX.Element {
         }
       })
     })
-  }, [])
+  }, [applyTransition])
 
   useEffect(() => {
     if (!ndiActive || !activeSource || !currentPage || programCaptureActive) return
@@ -729,6 +750,11 @@ function App(): React.JSX.Element {
             onIntervalChange={setAutoAdvanceIntervalSec}
             onPausedChange={setAutoAdvancePaused}
           />
+          {/* PDF only: the app-backed sources play their own transitions, so
+              offering ours here would imply a choice that has no effect. */}
+          {activeSource?.kind === 'pdf' && (
+            <TransitionControl settings={transition} onChange={setTransitionState} />
+          )}
           <OscControl
             filesEnabled={filesEnabled}
             filesFolderFullPath={filesFolderFullPath}
