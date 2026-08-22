@@ -226,7 +226,7 @@ refusal is a silent no-op, not an error.
 | **Extension stops relaying after a while** | MV3 service worker suspension. The extension reconnects defensively on every message for this reason; if it persists, reload it at `chrome://extensions`. |
 | **Notes off by a slide or two** | Hidden slides shift page numbering — slide count ≠ page count ([Presenter notes](#presenter-notes)). |
 | **NDI receiver shows a frozen frame** | Not necessarily dead — the sender repeats the last frame every second by design ([NDI output](#ndi-output)). |
-| **macOS says the app is damaged** | Unsigned build; see the README's Gatekeeper section. |
+| **macOS says the app is damaged** | Not the released build — those are signed and notarised. A self-built or pre-notarisation copy is quarantined; see the README's Gatekeeper section. |
 
 ---
 
