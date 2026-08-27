@@ -29,6 +29,8 @@ import type { CropRect } from './liveCapture'
 import { handleOscAction, allFeedback } from './osc/protocol'
 import type { OscSnapshot } from './osc/protocol'
 import type { OscSection } from '../../shared/sections'
+import type { ClientPlatform } from '../../shared/protocol'
+import { supportsKeynote, supportsPowerPoint } from '../../shared/platform'
 
 const NDI_STREAM_PROGRAM = 'program'
 const NDI_STREAM_NEXT = 'next'
@@ -44,7 +46,7 @@ function App(): React.JSX.Element {
   const [status, setStatus] = useState<ConnectionStatus>('disconnected')
   const [host, setHost] = useState('localhost:9800')
   const [name, setName] = useState('')
-  const [platform, setPlatform] = useState<'windows' | 'macos'>('macos')
+  const [platform, setPlatform] = useState<ClientPlatform>(window.api.system.platform)
   const [ndiActive, setNdiActive] = useState(false)
   const ndiCanvasRef = useRef<HTMLCanvasElement>(document.createElement('canvas'))
   const [nextNdiActive, setNextNdiActive] = useState(false)
@@ -774,12 +776,19 @@ function App(): React.JSX.Element {
           <button className="transport-btn" onClick={openPdf}>
             {filePath ? 'Open Different PDF…' : 'Open PDF…'}
           </button>
-          <button className="transport-btn" onClick={openKeynote}>
-            Open Keynote…
-          </button>
-          <button className="transport-btn" onClick={openPowerPoint}>
-            Open PowerPoint…
-          </button>
+          {/* Only where the automation behind them exists: Keynote is macOS
+              only, PowerPoint is macOS + Windows. Offering them on Linux gave
+              a button that could never do anything. */}
+          {supportsKeynote(platform) && (
+            <button className="transport-btn" onClick={openKeynote}>
+              Open Keynote…
+            </button>
+          )}
+          {supportsPowerPoint(platform) && (
+            <button className="transport-btn" onClick={openPowerPoint}>
+              Open PowerPoint…
+            </button>
+          )}
           <button className="transport-btn" onClick={connectGoogleSlides}>
             Connect Google Slides…
           </button>

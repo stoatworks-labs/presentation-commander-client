@@ -10,6 +10,8 @@ import type { ProgramOutState, LaserPosition } from '../shared/programOut'
 import type { OscArg, OscAction, OscConfig } from '../shared/osc'
 import type { FileControlConfig } from '../shared/files'
 import type { OscSection } from '../shared/sections'
+import type { ClientPlatform } from '../shared/protocol'
+import { toClientPlatform } from '../shared/platform'
 
 interface OpenPdfResult {
   filePath: string
@@ -68,7 +70,7 @@ interface BrowserSlideUpdate {
 
 interface SystemInfo {
   hostname: string
-  platform: 'windows' | 'macos'
+  platform: ClientPlatform
 }
 
 interface OAuthStatus {
@@ -88,6 +90,13 @@ type ScreenCapturePermissionStatus =
 
 const api = {
   system: {
+    /**
+     * Known here without a round trip, and it cannot change while the app
+     * runs. The renderer needs it on the FIRST paint to decide which source
+     * buttons this platform can even offer — waiting for system:info would
+     * show "Open Keynote…" on Windows for a frame and then take it away.
+     */
+    platform: toClientPlatform(process.platform),
     info: (): Promise<SystemInfo> => ipcRenderer.invoke('system:info')
   },
   pdf: {
