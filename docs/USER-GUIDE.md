@@ -16,6 +16,7 @@ work.
 | | PDF | Keynote (mac) | PowerPoint (mac) | PowerPoint (Win) | Google Slides | Canva |
 |---|---|---|---|---|---|---|
 | Works on Windows | ✅ | — | — | ✅ | ✅ | ✅ |
+| Works on Linux | ✅ | — | — | — | ✅ | ✅ |
 | Drives the real app | — | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Follows the presenter's own clicker | — | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Clickable internal links (TOC, "back to agenda") | ✅ | — | — | — | — | — |
@@ -28,9 +29,14 @@ work.
 ¹ Only while a **live PowerPoint slideshow is running independently of this app**, and all four
 media commands are the same keyboard toggle underneath — there is no separate play and pause.
 
+**On Linux you will not see "Open Keynote…" or "Open PowerPoint…".** Driving either one needs
+AppleScript or Windows COM automation, and Linux has no equivalent to offer, so the app hides
+the two buttons rather than showing controls that cannot work. PDF, Google Slides and Canva are
+all available there.
+
 **The PDF engine is the most capable and the most predictable.** It is the only source with
-clickable internal links, it works identically on both platforms, and it never depends on
-another application staying responsive. If you can export the deck to PDF, do — and use
+clickable internal links, it works identically on all three platforms, and it never depends
+on another application staying responsive. If you can export the deck to PDF, do — and use
 [presentation-converter](https://github.com/stoatworks-labs/presentation-converter) if you want
 the presenter notes carried across with it ([Presenter notes](#presenter-notes)).
 
