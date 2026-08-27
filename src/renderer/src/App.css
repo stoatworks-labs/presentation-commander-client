@@ -7,11 +7,20 @@
 
 .app-titlebar {
   flex-shrink: 0;
-  height: 40px;
+  /* Was a fixed 40px no-wrap row. The bar carries ~15 controls, so below
+     roughly 1500px the trailing ones (Connect Google Slides…, Canva, About)
+     were clipped off the right edge and the buttons still on screen shrank
+     until their labels wrapped mid-word. The window's own default is 1100px
+     wide and its minWidth is 780, so that was the normal case, not an edge
+     case. Wrapping to as many rows as it takes keeps every control reachable
+     at any width. */
+  min-height: 40px;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  padding: 0 14px;
+  gap: 8px;
+  padding: 6px 14px;
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.02em;
@@ -27,7 +36,18 @@
 
 .titlebar-actions {
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   gap: 8px;
+}
+/* Never shrink a control below its label — that is what turned "Default PDF
+   App" into three clipped lines rather than simply moving it to the next row. */
+.titlebar-actions > * {
+  flex: 0 0 auto;
+}
+.app-titlebar .transport-btn,
+.app-titlebar .icon-btn {
+  white-space: nowrap;
 }
 
 .program-out-control {
