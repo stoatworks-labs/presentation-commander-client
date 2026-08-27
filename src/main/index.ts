@@ -16,7 +16,8 @@ import { oscControlServer } from './services/oscControlServer'
 import { fileControl } from './services/fileControl'
 import { setWallpaper } from './services/wallpaper'
 import { setAsDefaultPdfHandler } from './services/defaultPdfHandler'
-import type { ClientPlatform, RegisterMessage, SlideStateMessage } from '../shared/protocol'
+import type { RegisterMessage, SlideStateMessage } from '../shared/protocol'
+import { toClientPlatform } from '../shared/platform'
 import type { ProgramOutState, LaserPosition } from '../shared/programOut'
 import type { OscArg, OscConfig } from '../shared/osc'
 import { collectDiagnostics, init as initDiag, say } from './diag/index.js'
@@ -36,19 +37,6 @@ initDiag({
   cwd: app_diag_cwd()
 })
 installElectronDiagnostics()
-
-/**
- * What this machine reports to the server's client list. This used to be a
- * two-way `darwin ? 'macos' : 'windows'` test, which labelled every Linux box
- * as Windows — visible in the server's Control Deck and over the automation
- * API. Anything that is not macOS or Windows reports as 'linux', which is the
- * only other platform either app is packaged for.
- */
-function clientPlatform(): ClientPlatform {
-  if (process.platform === 'darwin') return 'macos'
-  if (process.platform === 'win32') return 'windows'
-  return 'linux'
-}
 
 if (process.argv.includes('--collect-diagnostics')) {
   // stdout, so it can be used in a script; logging went to stderr.
@@ -360,7 +348,7 @@ app.whenReady().then(() => {
 
   ipcMain.handle('system:info', () => ({
     hostname: os.hostname().replace(/\.local$/, ''),
-    platform: clientPlatform()
+    platform: toClientPlatform(process.platform)
   }))
 
   ipcMain.handle('pdf:open', async () => {
