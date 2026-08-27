@@ -16,7 +16,7 @@ import { oscControlServer } from './services/oscControlServer'
 import { fileControl } from './services/fileControl'
 import { setWallpaper } from './services/wallpaper'
 import { setAsDefaultPdfHandler } from './services/defaultPdfHandler'
-import type { RegisterMessage, SlideStateMessage } from '../shared/protocol'
+import type { ClientPlatform, RegisterMessage, SlideStateMessage } from '../shared/protocol'
 import type { ProgramOutState, LaserPosition } from '../shared/programOut'
 import type { OscArg, OscConfig } from '../shared/osc'
 import { collectDiagnostics, init as initDiag, say } from './diag/index.js'
@@ -29,10 +29,26 @@ import { installElectronDiagnostics } from './diag/electron.js'
 initDiag({
   app: 'presentation-commander-client',
   envPrefix: 'PC_CLIENT',
-  version: '1.1.0',
+  // From package.json via electron-builder, so it cannot drift from the
+  // release the way a hand-maintained literal did (every build from
+  // 1.1.0 onward logged that version regardless of the real one).
+  version: app.getVersion(),
   cwd: app_diag_cwd()
 })
 installElectronDiagnostics()
+
+/**
+ * What this machine reports to the server's client list. This used to be a
+ * two-way `darwin ? 'macos' : 'windows'` test, which labelled every Linux box
+ * as Windows — visible in the server's Control Deck and over the automation
+ * API. Anything that is not macOS or Windows reports as 'linux', which is the
+ * only other platform either app is packaged for.
+ */
+function clientPlatform(): ClientPlatform {
+  if (process.platform === 'darwin') return 'macos'
+  if (process.platform === 'win32') return 'windows'
+  return 'linux'
+}
 
 if (process.argv.includes('--collect-diagnostics')) {
   // stdout, so it can be used in a script; logging went to stderr.
@@ -344,7 +360,7 @@ app.whenReady().then(() => {
 
   ipcMain.handle('system:info', () => ({
     hostname: os.hostname().replace(/\.local$/, ''),
-    platform: process.platform === 'darwin' ? 'macos' : 'windows'
+    platform: clientPlatform()
   }))
 
   ipcMain.handle('pdf:open', async () => {
@@ -561,7 +577,6 @@ app.on('window-all-closed', () => {
     app.quit()
   }
 })
-
 
 /** Repo root when running from source; irrelevant once packaged, where
  *  there is no .git and the git revision reads as 'unknown'. */
