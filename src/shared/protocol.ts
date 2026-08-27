@@ -1,7 +1,11 @@
 // Wire protocol between a Client Node and the Master Server's client hub
 // (ws://<host>:9800). Kept as plain JSON messages, one per WebSocket frame.
 
-export type ClientPlatform = 'windows' | 'macos'
+// Both apps are packaged for Linux, but the client used to report every Linux
+// box as 'windows' — it derived this from a two-way darwin/else test, so the
+// Control Deck and the automation API both showed the wrong platform. The hub
+// does not validate the value, so an older server still accepts 'linux'.
+export type ClientPlatform = 'windows' | 'macos' | 'linux'
 export type ClientApp = 'powerpoint' | 'keynote' | 'google-slides' | 'canva' | 'pdf'
 
 export interface RegisterMessage {
