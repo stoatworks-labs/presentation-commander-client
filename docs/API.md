@@ -76,7 +76,7 @@ through to the switch's default case and is silently ignored — not treated as 
 | `/presentcommander/slideshow/laserpointer` | bool? | Omit to toggle |
 | `/presentcommander/slideshow/setwallpaper` | int?, int? | Renders the current screen and sets it as desktop wallpaper. Defaults 1920×1080. |
 | `/presentcommander/slideshow/transition/seteffect` | string | One of `cut`, `fade`, `dip-black`, `dip-white`, `push`, `wipe`, `cover`, `uncover`, `zoom`. **An unrecognised name is a silent no-op**, not a reset to a default. |
-| `/presentcommander/slideshow/transition/setdirection` | string | One of `left`, `right`, `top`, `bottom`, `top-left`, `top-right`, `bottom-left`, `bottom-right` — the edge the *new* slide comes from. Only `push`/`wipe`/`cover`/`uncover` read it; setting it under another effect is remembered, not discarded. |
+| `/presentcommander/slideshow/transition/setdirection` | string | One of `left`, `right`, `top`, `bottom`, `top-left`, `top-right`, `bottom-left`, `bottom-right` — the edge the *new* slide comes from — or `dynamic`, which plays `left` when advancing and `right` when stepping back. Only `push`/`wipe`/`cover`/`uncover` read it; setting it under another effect is remembered, not discarded. The feedback reports `dynamic` as set, never the edge it resolved to. |
 | `/presentcommander/slideshow/transition/setduration` | int/float | Milliseconds, **clamped to 50…5000**. Covers the whole transition, both halves of a dip included. |
 | `/presentcommander/slideshow/pause` | — | No-op unless auto-advance is enabled |
 | `/presentcommander/slideshow/resume` | — | Same |

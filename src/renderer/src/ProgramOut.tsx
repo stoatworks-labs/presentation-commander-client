@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { PDFDocumentProxy } from 'pdfjs-dist'
 import type { ProgramOutState, LaserPosition } from '../../shared/programOut'
-import { DEFAULT_TRANSITION } from '../../shared/transitions'
+import { DEFAULT_TRANSITION, type SlideTravel } from '../../shared/transitions'
 import './App.css'
 import { loadPdf, renderPageContain } from './pdf'
 import { transitionToSlide } from './transitions'
@@ -70,8 +70,11 @@ function ProgramOut(): React.JSX.Element {
     const settings = cut
       ? { ...DEFAULT_TRANSITION, effect: 'cut' as const }
       : (state.transition ?? DEFAULT_TRANSITION)
+    // Which way through the deck — read off the page that was on screen, so
+    // a thumbnail jump backwards plays the same way Previous does.
+    const travel: SlideTravel = last && page < last.page ? 'backward' : 'forward'
 
-    transitionToSlide(frame, canvas, settings, render).catch((err) =>
+    transitionToSlide(frame, canvas, settings, travel, render).catch((err) =>
       console.error('Failed to render program-out page', err)
     )
   }, [doc, state])
