@@ -5,6 +5,19 @@ import type { OscSection } from '../../shared/sections'
 
 pdfjsLib.GlobalWorkerOptions.workerPort = new PdfWorker()
 
+/**
+ * Where pdf.js fetches its JPEG 2000 / JBIG2 / ICC decoders from — see
+ * vite.pdfjs-wasm.ts, which puts them there for every build target. Without
+ * this, images in those formats decode to nothing and the page renders as text
+ * on an empty background.
+ *
+ * Resolved against index.html rather than an imported asset URL because the
+ * same expression then covers both targets the renderer runs in: the dev
+ * server, and the packaged app — whose windows are loaded from a file:// path,
+ * where a root-absolute "/pdfjs-wasm/" would point at the filesystem root.
+ */
+const WASM_URL = new URL('pdfjs-wasm/', document.baseURI).href
+
 function base64ToUint8Array(base64: string): Uint8Array {
   const binary = atob(base64)
   const bytes = new Uint8Array(binary.length)
@@ -13,7 +26,7 @@ function base64ToUint8Array(base64: string): Uint8Array {
 }
 
 export function loadPdf(base64: string): Promise<PDFDocumentProxy> {
-  return pdfjsLib.getDocument({ data: base64ToUint8Array(base64) }).promise
+  return pdfjsLib.getDocument({ data: base64ToUint8Array(base64), wasmUrl: WASM_URL }).promise
 }
 
 const activeRenders = new WeakMap<HTMLCanvasElement, RenderTask>()
