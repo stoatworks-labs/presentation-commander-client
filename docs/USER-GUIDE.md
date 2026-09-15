@@ -3,6 +3,10 @@
 This runs on the presentation laptop. It puts the deck on screen, sends it out over NDI, keeps
 presenter notes, and takes remote control from a Stream Deck or the Master Server.
 
+![The main window presenting a real PDF: Now and Next, with the Program Out display picker above.](screenshot.png)
+
+*The main window presenting a real PDF: Now and Next, with the Program Out display picker above.*
+
 The [README](../README.md) covers what each feature is and how to install. This is how to run a
 show with it, and what will catch you out.
 
