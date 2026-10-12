@@ -1,19 +1,18 @@
 # Presentation Commander — Client
 
 > **AI-assisted project.** This codebase was created with [Claude](https://claude.com/claude-code)
-> (Anthropic), directed and reviewed by a human author — including architecture,
-> implementation, and documentation. Review it accordingly before relying on it in
-> production.
+> (Anthropic), directed and reviewed by a human author. That covers the architecture, the
+> implementation and the documentation. Check it over before you rely on it for a show.
 
-The presentation laptop companion app for
+The app that runs on the presentation laptop, paired with
 [presentation-commander-server](https://github.com/stoatworks-labs/presentation-commander-server).
-A bespoke PDF presentation engine built as an Electron + React + TypeScript
-desktop app — no PowerPoint or Keynote dependency.
+It's a bespoke PDF presentation engine, built as an Electron + React + TypeScript
+desktop app, so it doesn't need PowerPoint or Keynote to run a show.
 
-[![Watch it running — 37 seconds](docs/video-thumb.png)](https://www.youtube.com/watch?v=J2-2x-FDdw4)
+[![Watch it running (37 seconds)](docs/video-thumb.png)](https://www.youtube.com/watch?v=J2-2x-FDdw4)
 
-*A 37-second tour. Every frame is the real application, presenting a real PDF, driven over
-its own OSC control surface. It is shown running standalone, not paired to a server.*
+*A 37-second tour. It's the app itself the whole way through, presenting an actual PDF and
+driven over its own OSC control surface. It's running standalone here, not paired to a server.*
 
 ![Presentation Commander Client main window: connection panel, Program Out display picker, and Open PDF control](docs/screenshot.png)
 
@@ -67,139 +66,138 @@ macOS builds are signed and notarised and open normally. The Windows builds are 
 
 ## What it does
 
-- **Bespoke PDF engine** — open a PDF, get Now/Next slide previews rendered
+- **Bespoke PDF engine:** open a PDF and you get Now/Next slide previews rendered
   locally with pdf.js. Internal links authored into the PDF (a table of
   contents, "back to agenda" links exported from PowerPoint/Keynote/Google
-  Slides) are clickable on the "Now" slide, jumping straight to their target
-  page — reads link annotations via pdf.js, resolving each destination to a
-  page number regardless of whether it's named or explicit; PDF-only, since
-  it's exposed as an optional `getLinks` on `SlideSource` that only
-  `pdfSource.ts` implements
-- **Keynote integration** (macOS) — drive a real, currently-open Keynote
-  slideshow directly via AppleScript instead of a pre-exported PDF: slide
-  count and presenter notes are pulled on open, navigating in our UI
-  advances the real Keynote window, and advancing Keynote itself (clicker,
-  arrow keys) is polled and reflected back within ~400ms
-- **PowerPoint integration** (macOS and Windows) — same idea as Keynote,
-  platform-appropriate mechanism: AppleScript on macOS, PowerShell COM
+  Slides) are clickable on the "Now" slide and jump straight to their target
+  page. It reads link annotations via pdf.js and resolves each destination to a
+  page number, whether it's named or explicit. That's PDF-only, since it's
+  exposed as an optional `getLinks` on `SlideSource` that only `pdfSource.ts`
+  implements.
+- **Keynote integration** (macOS): drives a live, currently-open Keynote
+  slideshow directly via AppleScript instead of a pre-exported PDF. Slide
+  count and presenter notes are pulled in on open, navigating in the app
+  advances the Keynote window itself, and advancing Keynote directly (clicker,
+  arrow keys) is polled and reflected back within ~400ms.
+- **PowerPoint integration** (macOS and Windows): the same idea as Keynote, with
+  the mechanism that suits each platform: AppleScript on macOS, PowerShell COM
   automation (`New-Object -ComObject PowerPoint.Application`) on Windows,
   behind the same `SlideSource` interface either way. Slide count and
-  presenter notes are pulled on open; navigating in our UI drives the real
-  PowerPoint editing view. On macOS, PowerPoint's AppleScript dictionary has
-  no working bulk slide-image export (`save … as PNG/PDF` is declared but is
-  a silent no-op in the tested version), so frames are captured one slide at
-  a time via `copy object` + reading the resulting image off the system
-  clipboard. On Windows, `Slide.Export(path, "PNG", w, h)` genuinely works,
-  so export is a plain bulk loop — no clipboard round-trip needed. Neither
-  platform drives PowerPoint's own fullscreen slideshow mode (confirmed
-  unreliable under automation/virtualization on both — same class of issue
-  as Keynote's `start`/`show`); the editing view's current slide is enough
-  for everything this app needs, since Program Out/NDI is what the audience
-  actually sees
-- **Live capture for Keynote/PowerPoint** (macOS) — an alternative to the
-  static pre-exported-PNG frames above: captures the real on-screen display
-  live via `getDisplayMedia`, so animations, transitions, and embedded video
-  playback actually show up in the NDI output, not just a still image of
-  however the slide looked at export time. Opt-in per stream (Program and/or
-  Next Slide) via a gear icon next to each NDI toggle, which lists capturable
-  screens and offers an optional crop region (X/Y/W/H %) for isolating a
-  sub-area — e.g. just the "next slide" box out of a captured Presenter
-  Display that shows current + next + notes together. Two things had to be
-  fixed to make this reliable: the video element receiving the stream must
+  presenter notes are pulled in on open, and navigating in the app drives
+  PowerPoint's editing view. On macOS, PowerPoint's AppleScript dictionary has
+  no working bulk slide-image export (`save … as PNG/PDF` is declared, but it
+  silently does nothing in the version I tested), so frames are captured one
+  slide at a time with `copy object` and then read off the system clipboard. On
+  Windows, `Slide.Export(path, "PNG", w, h)` does work, so export is a plain
+  bulk loop with no clipboard round-trip. Neither platform drives PowerPoint's
+  own fullscreen slideshow mode (confirmed unreliable under
+  automation/virtualization on both, the same class of problem as Keynote's
+  `start`/`show`). The editing view's current slide is enough for everything
+  this app needs, since Program Out/NDI is what the audience actually sees.
+- **Live capture for Keynote/PowerPoint** (macOS): an alternative to the
+  static pre-exported-PNG frames above. It captures the on-screen display
+  live via `getDisplayMedia`, so animations, transitions and embedded video
+  playback show up in the NDI output, rather than a still of however the
+  slide looked at export time. It's opt-in per stream (Program and/or Next
+  Slide) via a gear icon next to each NDI toggle, which lists the screens you
+  can capture and offers an optional crop region (X/Y/W/H %) for picking out
+  part of one, e.g. just the "next slide" box from a captured Presenter
+  Display that shows current + next + notes together. Two things needed
+  fixing to make this reliable. The video element receiving the stream has to
   be attached to the DOM (a detached one stops receiving frames after a few
-  seconds — a Chromium resource-management heuristic based on visibility,
-  confirmed live), and the window needs `backgroundThrottling: false` in
-  `webPreferences`, since Chromium throttles `setInterval` hard enough to
-  stall the capture loop within seconds once backgrounded — which this app
-  is, by design, during real use (Keynote/PowerPoint is what's actually
-  frontmost while presenting). Fullscreen presentation windows aren't
-  enumerable via `desktopCapturer`'s window-level sources on macOS (confirmed
-  live — they sit above whatever window level that query reads), so this
-  captures a whole physical display rather than a specific window, matching
-  the existing Program Out display-picker's screen-based approach.
-- **Canva integration** — connects to a live Canva Presenter Window (opened
+  seconds, which is a Chromium resource-management heuristic based on
+  visibility, confirmed live). And the window needs `backgroundThrottling: false`
+  in `webPreferences`, because Chromium throttles `setInterval` hard enough to
+  stall the capture loop within seconds once the window's in the background,
+  which is where this app always is in real use (Keynote/PowerPoint is what's
+  frontmost while presenting). Fullscreen presentation windows can't be
+  enumerated through `desktopCapturer`'s window-level sources on macOS
+  (confirmed live: they sit above whatever window level that query reads), so
+  this captures a whole physical display rather than one window, matching the
+  Program Out display picker's screen-based approach.
+- **Canva integration:** connects to a live Canva Presenter Window (opened
   via Present → Presenter view) through the same browser-extension bridge as
   Google Slides. Unlike Slides, Canva has no public API for speaker notes or
-  slide state, so both are scraped directly from the Presenter Window's DOM:
-  current slide index from its "N / M" counter, the frame from the untainted
-  `<canvas>` it renders slides onto (`canvas.toDataURL()`, no `chrome.tabCapture`
-  needed), and notes text from a `<span>` Canva renders once notes are
-  non-empty — the notes `<textarea>` itself only exists as an "Add notes…"
-  placeholder prompt when notes are empty, so it can't be read directly.
-  Navigating in our UI dispatches synthetic arrow-key events into the
-  Presenter Window, mirroring Google Slides' approach
-- **Presenter notes** — per-slide notes, auto-saved to a `.notes.json`
-  sidecar file next to the PDF
-- **Transport** — Previous/Next buttons, a clickable "Next" preview, and
-  keyboard navigation (Left/Right, Up/Down, Page Up/Page Down, Space)
-- **Program Out** — a second, fullscreen, chrome-free window showing just
+  slide state, so both are scraped straight from the Presenter Window's DOM:
+  the current slide index from its "N / M" counter, the frame from the
+  untainted `<canvas>` it draws slides onto (`canvas.toDataURL()`, no
+  `chrome.tabCapture` needed), and the notes text from a `<span>` Canva renders
+  once there are notes. The notes `<textarea>` itself only exists as an "Add
+  notes…" placeholder prompt when notes are empty, so it can't be read
+  directly. Navigating in the app sends synthetic arrow-key events into the
+  Presenter Window, the same approach as Google Slides.
+- **Presenter notes:** per-slide notes, auto-saved to a `.notes.json`
+  sidecar file next to the PDF.
+- **Transport:** Previous/Next buttons, a clickable "Next" preview, and
+  keyboard navigation (Left/Right, Up/Down, Page Up/Page Down, Space).
+- **Program Out:** a second, fullscreen, chrome-free window showing just
   the current slide, for a projector or confidence monitor. Pick which
-  connected display it opens on from a dropdown next to the button. Press
+  connected display it opens on from the dropdown next to the button. Press
   `B`/`W` to blank it to solid black/white without losing your place
-  (matches PowerPoint's presenter shortcuts), and an optional checkbox
-  hides the OS cursor over it
-- **NDI Output** — two independent, separately-toggleable NDI video sources
-  on the network: **Program Out** (the current slide) and **Next Slide
+  (the same as PowerPoint's presenter shortcuts), and an optional checkbox
+  hides the OS cursor over it.
+- **NDI Output:** two independent NDI video sources on the network, each with
+  its own toggle: **Program Out** (the current slide) and **Next Slide
   NDI** (the upcoming slide, using the same render path as the Now/Next
-  preview), so a second receiver — a stage monitor showing what's coming
-  next, a director's preview feed — can pick up the next slide without
-  needing the server's composited Confidence Monitor path. Built directly
+  preview). So a second receiver, like a stage monitor showing what's coming
+  next or a director's preview feed, can pick up the next slide without
+  needing the server's composited Confidence Monitor path. It's built directly
   against the official [Vizrt NDI SDK](https://ndi.video/for-developers/ndi-sdk/)
-  via a small native N-API addon (`native/ndi-send`) — no third-party NDI
-  wrapper. Both are independent of whether the Program Out window is open,
-  since NDI is a network output rather than a local display
-- **Server link** — connects to the Master Server's client hub over
+  through a small native N-API addon (`native/ndi-send`), with no third-party
+  NDI wrapper. Both run whether or not the Program Out window is open, since
+  NDI is a network output rather than a local display.
+- **Server link:** connects to the Master Server's client hub over
   WebSocket (`ws://<host>:9800`), registers itself by name, pushes live
-  slide/notes state, and accepts remote next/previous-slide commands
-  triggered from the server's Control Surface
-- **OSC control** — a UDP OSC address space (slide navigation, black/white,
+  slide/notes state, and takes remote next/previous-slide commands
+  from the server's Control Surface.
+- **OSC control:** a UDP OSC address space (slide navigation, black/white,
   notes, Program Out open/close, system enable/disable) at
-  `/presentcommander/...`, across every source type — PDF, Keynote,
-  PowerPoint, Google Slides, Canva. Plain UDP rather than a Windows COM
-  add-in, so it works on every platform this app ships for. A real
-  Bitfocus Companion module ships alongside this app —
-  [companion-module-presentation-commander-client](https://github.com/stoatworks-labs/companion-module-presentation-commander-client)
-  — for driving it from a Stream Deck or any other Companion surface. An
-  optional, off-by-default "watched folder" feature lets OSC open a
-  specific PDF/Keynote/PowerPoint file by filename without a dialog —
-  useful for a button wall that loads a specific deck on cue. Sections
+  `/presentcommander/...`, across every source type: PDF, Keynote,
+  PowerPoint, Google Slides, Canva. It's plain UDP rather than a Windows COM
+  add-in, so it works on every platform this app ships for. A Bitfocus
+  Companion module ships alongside it,
+  [companion-module-presentation-commander-client](https://github.com/stoatworks-labs/companion-module-presentation-commander-client),
+  for driving it from a Stream Deck or any other Companion surface. An
+  optional "watched folder" feature, off by default, lets OSC open a
+  specific PDF/Keynote/PowerPoint file by filename without a dialog, which is
+  handy for a button wall that loads a particular deck on cue. Sections
   (`goto/section`) are mapped from a PDF's own outline/bookmarks, or from
-  PowerPoint's native COM `SectionProperties` on Windows — Keynote,
-  Google Slides, Canva, and PowerPoint on Mac have no native section
-  concept to map from, so they report none rather than fabricating one.
+  PowerPoint's native COM `SectionProperties` on Windows. Keynote, Google
+  Slides, Canva and PowerPoint on Mac have no native idea of sections to map
+  from, so they report none rather than making one up.
   `/presentcommander/slideshow/laserpointer` mirrors the presenter's mouse
-  position over the "Now" preview onto Program Out as a glowing dot,
-  matching PowerPoint's own laser-pointer feature — source-agnostic,
-  since it's purely a display overlay independent of slide content. Media
+  position over the "Now" preview onto Program Out as a glowing dot, like
+  PowerPoint's own laser pointer. It works whatever the source, since it's a
+  display overlay that has nothing to do with the slide content. Media
   control (`/presentcommander/media/play|pause|playpause|stop` and a
-  `media/duration` feedback) works only for PowerPoint on Windows, and only
+  `media/duration` feedback) only works for PowerPoint on Windows, and only
   when the presenter has a live PowerPoint slideshow running independently
-  of this app (e.g. started directly in PowerPoint) — it's a keyboard-
-  shortcut toggle under the hood, since PowerPoint's COM object model has
-  no direct play/pause method. Not available anywhere else: confirmed via
-  direct inspection of both Keynote's and PowerPoint-for-Mac's scripting
-  dictionaries that neither exposes any playback control at all.
-  `/presentcommander/slideshow/setwallpaper` renders whatever's currently
-  on screen and sets it as the desktop wallpaper on every connected
-  monitor — source-agnostic (works for every source type via the same
-  `renderFrame` every SlideSource already implements). macOS and Windows
-  are fully covered, Linux is GNOME-only. **Timed auto-advance** — an
-  optional "advance every N seconds" mode (stops at the last slide rather
-  than looping), with its own play/pause control next to the OSC
-  settings — `/presentcommander/slideshow/pause` and `/resume` suspend/resume
-  it remotely once it's turned on, and are a no-op if it was never enabled
-- **Set as Default PDF App** — a titlebar button for making double-clicking
-  a PDF open straight into this app (PDF is the one source type here with
-  a real cross-platform "default app" concept — Keynote/PowerPoint files
-  already have their own native defaults this doesn't presume to override).
-  What it actually does differs by OS, since neither Windows nor macOS let
-  a third-party app silently seize the default-app slot: on Windows it
-  registers the app as a candidate then opens Settings for you to confirm;
+  of this app (started directly in PowerPoint, say). Under the hood it's a
+  keyboard-shortcut toggle, because PowerPoint's COM object model has no
+  direct play/pause method. It isn't available anywhere else: I went through
+  both Keynote's and PowerPoint-for-Mac's scripting dictionaries and neither
+  exposes any playback control at all.
+  `/presentcommander/slideshow/setwallpaper` renders whatever's on screen
+  and sets it as the desktop wallpaper on every connected monitor. It works
+  for every source type, through the same `renderFrame` every SlideSource
+  already implements. macOS and Windows are fully covered, and Linux is
+  GNOME-only. **Timed auto-advance** is an optional "advance every N seconds"
+  mode (it stops at the last slide rather than looping), with its own
+  play/pause control next to the OSC settings.
+  `/presentcommander/slideshow/pause` and `/resume` suspend and resume it
+  remotely once it's on, and do nothing if it was never enabled.
+- **Set as Default PDF App:** a titlebar button that makes double-clicking
+  a PDF open it straight into this app. PDF is the one source type here with
+  a proper cross-platform "default app" concept, and Keynote/PowerPoint files
+  already have their own native defaults that this doesn't presume to
+  override. What it does differs by OS, since neither Windows nor macOS lets
+  a third-party app grab the default-app slot without asking: on Windows it
+  registers the app as a candidate and then opens Settings for you to confirm;
   on macOS it registers with Launch Services and sets the default directly
-  if `duti` is installed (`brew install duti`), otherwise shows the real
+  if `duti` is installed (`brew install duti`), and otherwise shows you the
   manual steps; on Linux it's fully automatic via `xdg-mime`. The status
-  message always says what actually happened, never a fake "done" when
-  the real answer is "you still need to confirm it"
+  message always says what actually happened, and never claims "done" when
+  the answer is "you still need to confirm it".
 
 ## Architecture
 
@@ -242,45 +240,45 @@ graph LR
 
 The native send addon links against the NDI SDK at build time. Install
 the [NDI SDK](https://ndi.video/for-developers/ndi-sdk/) first (macOS
-default: `/Library/NDI SDK for Apple`; override the location with
-`NDI_SDK_DIR` if yours lives elsewhere). `npm install` rebuilds the addon
-automatically via `@electron/rebuild`.
+default: `/Library/NDI SDK for Apple`; set `NDI_SDK_DIR` if yours lives
+somewhere else). `npm install` rebuilds the addon automatically via
+`@electron/rebuild`.
 
 ### Google Slides / Canva bridge (optional)
 
 `extension/` is one unpacked Chrome extension that lets the Client connect
 to a live Google Slides Presenter View or a live Canva Presenter Window
-instead of a local PDF/Keynote file — load it via `chrome://extensions` →
+instead of a local PDF/Keynote file. Load it via `chrome://extensions` →
 Developer mode → Load unpacked. Both platforms relay through the same local
-WebSocket bridge (`ws://localhost:9801`); an `app` field on every message
+WebSocket bridge (`ws://localhost:9801`), and an `app` field on every message
 tells the Client which `SlideSource` it belongs to. Fetching Google Slides
 speaker notes needs a one-time OAuth client registration in Google Cloud
-Console — click the ⚙ next to "Connect Google Slides…" in the app for
-step-by-step in-app instructions and a field to paste the client ID
-directly into `extension/manifest.json` (no manual file editing needed;
-still requires one manual reload of the extension at `chrome://extensions`
-afterward, since Chrome only picks up manifest changes on reload). The full
+Console. Click the ⚙ next to "Connect Google Slides…" in the app for
+step-by-step instructions and a field to paste the client ID straight into
+`extension/manifest.json`. There's no file editing by hand, but you do still
+have to reload the extension once at `chrome://extensions` afterwards,
+because Chrome only picks up manifest changes on reload. The full
 walkthrough is also written out at
 [`extension/OAUTH_SETUP.md`](extension/OAUTH_SETUP.md). Canva needs no
-OAuth setup — its notes and slide state are scraped directly from the
-Presenter Window's DOM, not fetched from an API.
+OAuth setup, as its notes and slide state are scraped from the Presenter
+Window's DOM rather than fetched from an API.
 
-Note for MV3 service worker reliability: the extension's background
+A note on MV3 service worker reliability: the extension's background
 service worker calls `connect()` defensively on every incoming message
-rather than relying solely on its `setTimeout`-based reconnect loop —
-Chrome discards pending timers when it suspends an idle service worker, so
-a `setTimeout` reconnect scheduled just before suspension would otherwise
+rather than relying only on its `setTimeout`-based reconnect loop. Chrome
+throws away pending timers when it suspends an idle service worker, so a
+`setTimeout` reconnect scheduled just before suspension would otherwise
 never fire.
 
 ## Status
 
-Feature-complete for its current scope: the bespoke PDF engine, Keynote
-(macOS), PowerPoint (macOS and Windows), Google Slides, and Canva sources,
+Feature-complete for its current scope: the bespoke PDF engine, the Keynote
+(macOS), PowerPoint (macOS and Windows), Google Slides and Canva sources,
 dual NDI outputs (Program + Next Slide), live capture for Keynote/PowerPoint,
-presenter notes, Program Out window, and the Master Server link / Control
+presenter notes, the Program Out window, and the Master Server link / Control
 Surface integration are all built and verified. Keynote drive and live
-capture are macOS-only (no Windows equivalent exists yet for either); PDF,
-Google Slides, and Canva work on both platforms.
+capture are macOS-only (there's no Windows equivalent for either yet); PDF,
+Google Slides and Canva work on both platforms.
 
 ## Documentation
 
@@ -292,45 +290,43 @@ Google Slides, and Canva work on both platforms.
 
 ## Inspiration & prior art
 
-This app's OSC control feature, its PowerPoint-media-control research, and
-its wallpaper-export feature were all shaped by looking at how existing
-remote-PowerPoint-control tools work. Being specific about what was and
-wasn't reused:
+This app's OSC control, its PowerPoint media-control research and its
+wallpaper-export feature were all shaped by looking at how existing
+remote-PowerPoint-control tools work. Here's what I did and didn't take from
+each:
 
-- **[OSCPoint](https://github.com/phuvf/oscpoint)** — a Windows PowerPoint
-  add-in exposing an OSC API. It's closed-source, so nothing was copied
-  from it; its public documentation (`ACTIONS.md`/`FEEDBACKS.md`/`EVENTS.md`/
-  `PRESENTATION.md`) was read to design a comparable address space and the
-  two-port (action-in/feedback-out) architecture this app uses. That
-  address space originally mirrored OSCPoint's own (`/oscpoint/...`,
-  matching ports) for drop-in Companion compatibility; it's since been
-  renamed to `/presentcommander/...` and decoupled from OSCPoint entirely,
-  now that this app has its own dedicated Companion module instead.
+- **[OSCPoint](https://github.com/phuvf/oscpoint):** a Windows PowerPoint
+  add-in with an OSC API. It's closed-source, so I didn't copy anything from
+  it. I read its public documentation (`ACTIONS.md`/`FEEDBACKS.md`/`EVENTS.md`/
+  `PRESENTATION.md`) to design a comparable address space and the two-port
+  (action-in/feedback-out) architecture this app uses. That address space
+  started out mirroring OSCPoint's own (`/oscpoint/...`, matching ports) so
+  it'd drop straight into Companion. It's since been renamed to
+  `/presentcommander/...` and cut loose from OSCPoint entirely, now that this
+  app has its own Companion module.
 - **[benkuper/PowerPoint-OSC](https://github.com/benkuper/PowerPoint-OSC)**
-  and **[leonreucher/powerpoint-remote-websocket](https://github.com/leonreucher/powerpoint-remote-websocket)** —
-  two public, open-source VSTO (C#/.NET) PowerPoint add-ins. Their real
-  source was read specifically to answer one question during this app's
-  PowerPoint media-control work: is external COM automation of PowerPoint's
-  slideshow/media actually viable at all? Reading both confirmed that
-  `SlideShowSettings.Run()` is a normal, working COM call in practice, and
-  that neither add-in ever calls a direct Play()/Pause() method on a media
-  shape — only detects/counts them — which is what led to this app's own
-  Alt+P `SendKeys` toggle in `powerpointBridgeWin.ts` instead of a
-  (nonexistent) direct COM method. No C#/VSTO code was ported: both
-  reference add-ins run in-process inside PowerPoint, while this app
-  automates PowerPoint externally via PowerShell COM calls — a different
-  enough architecture that reuse wasn't really possible, only the factual
-  understanding of what PowerPoint's COM model does and doesn't expose.
-- **[Iris Down Remote Show Control](https://irisdown.co.uk/rsc.html)** — an
-  older, separate commercial PowerPoint add-in taking plain ASCII text
+  and **[leonreucher/powerpoint-remote-websocket](https://github.com/leonreucher/powerpoint-remote-websocket):**
+  two public, open-source VSTO (C#/.NET) PowerPoint add-ins. I read their
+  source to answer one question during this app's PowerPoint media-control
+  work: is external COM automation of PowerPoint's slideshow/media viable at
+  all? Both confirmed that `SlideShowSettings.Run()` is a normal, working COM
+  call in practice, and that neither add-in ever calls a direct Play()/Pause()
+  method on a media shape (they only detect and count them). That's what led
+  to this app's own Alt+P `SendKeys` toggle in `powerpointBridgeWin.ts`
+  instead of a (nonexistent) direct COM method. No C#/VSTO code was ported:
+  both add-ins run in-process inside PowerPoint, while this app automates
+  PowerPoint from outside via PowerShell COM calls. The architectures are
+  different enough that reuse wasn't really possible, only the facts about
+  what PowerPoint's COM model does and doesn't expose.
+- **[Iris Down Remote Show Control](https://irisdown.co.uk/rsc.html):** an
+  older, separate commercial PowerPoint add-in that takes plain ASCII text
   commands (`NEXT`, `PREV`, `GO`, `RUNCURRENT`, `SETBG`, …) over UDP/TCP,
-  with no feedback channel at all. Its command set overlaps conceptually
-  with several features here — slide navigation, starting from the current
-  slide, and notably `SETBG`'s "set desktop wallpaper to the current
-  slide," which this app's own wallpaper-export feature does the same
-  thing as. Nothing was read from its source (it isn't public) or its wire
-  format (plain text vs. this app's OSC) — the overlap is in feature
-  scope, not implementation.
+  with no feedback channel at all. Its command set overlaps in concept with
+  several features here: slide navigation, starting from the current slide,
+  and in particular `SETBG`'s "set desktop wallpaper to the current slide",
+  which this app's wallpaper export also does. Nothing was read from its
+  source (it isn't public) or its wire format (plain text vs. this app's
+  OSC). They overlap in features, not in implementation.
 
 ## Project Setup
 
@@ -361,18 +357,18 @@ npm run build:linux
 
 ## Windows SmartScreen & Defender Firewall
 
-macOS builds are **Developer ID-signed and notarised by Apple** — they open
+macOS builds are **Developer ID-signed and notarised by Apple**, so they open
 normally, with no Gatekeeper warning and no quarantine step. The Windows
-binaries are **not** code-signed, so Windows still warns you the first time.
+binaries **aren't** code-signed, so Windows still warns you the first time.
 
-- **Windows** — SmartScreen shows *"Windows protected your PC"* →
+- **Windows:** SmartScreen shows *"Windows protected your PC"* →
   **More info** → **Run anyway**.
-- **Windows Defender Firewall** — first launch pops *"Allow Presentation Commander
+- **Windows Defender Firewall:** the first launch pops up *"Allow Presentation Commander
   Client to communicate on these networks"*. Tick **Private** (and **Domain** on a
-  managed network) — Presentation Commander Client needs it to accept control from the
+  managed network). Presentation Commander Client needs it to take control from the
   Master Server and send its Program and Next-Slide NDI outputs. Deny it and the Server
-  won't discover it and no NDI outputs will appear downstream.
-- **Linux** — no signing gate.
+  won't discover it, and no NDI outputs will appear downstream.
+- **Linux:** no signing gate.
 
 Per-artifact steps, self-signing, checksum verification and the Defender Firewall reset
 procedure: **[docs/UNSIGNED.md](docs/UNSIGNED.md)**.
