@@ -179,7 +179,7 @@ A UDP OSC address space at `/presentcommander/...`, with its own
 [Companion module](https://github.com/stoatworks-labs/companion-module-presentation-commander-client).
 Default ports: **listens on 35551**, sends feedback to **127.0.0.1:35550**. Off by default.
 
-The full address list is in [API.md [Program Out](#program-out)](API.md#1-osc-control). What catches people out:
+The full address list is in [API.md's OSC control section](API.md#1-osc-control). What catches people out:
 
 - **Actions must be enabled.** While they're disabled, every message except `actions/enable` is
   **dropped silently**. This is the number one cause of "the button does nothing".
@@ -226,7 +226,7 @@ refusal is a silent no-op, not an error.
 | **Blackout turned off when I asked for on** | A malformed argument is treated as absent, and no argument means toggle ([Remote control](#remote-control)). |
 | **`goto/section` does nothing** | Case mismatch, or the source has no sections at all — only PDF and PowerPoint-on-Windows do ([Choose your source first — the capabilities differ](#choose-your-source-first--the-capabilities-differ)). |
 | **Media commands do nothing** | Only PowerPoint on Windows, and only with a live slideshow running separately. On macOS they're accepted and ignored ([Driving Keynote and PowerPoint](#driving-keynote-and-powerpoint)). |
-| **Notes garbled / non-ASCII wrong** | Read `notes-utf8` (blob) rather than `notes` (string) (API.md [Program Out](#program-out)). |
+| **Notes garbled / non-ASCII wrong** | Read `notes-utf8` (blob) rather than `notes` (string) ([API.md: OSC control](API.md#1-osc-control)). |
 | **Server link silently stopped working** | It dropped and there is no auto-reconnect ([Remote control](#remote-control)). |
 | **Two laptops show as one on the server** | They registered with the same name ([Remote control](#remote-control)). |
 | **Keynote/PowerPoint bridge acts like the deck is empty** | macOS Automation permission was denied ([Driving Keynote and PowerPoint](#driving-keynote-and-powerpoint)). |
@@ -238,7 +238,7 @@ refusal is a silent no-op, not an error.
 | **Extension stops relaying after a while** | MV3 service worker suspension. The extension reconnects defensively on every message for this reason; if it persists, reload it at `chrome://extensions`. |
 | **Notes off by a slide or two** | Hidden slides shift page numbering — slide count ≠ page count ([Presenter notes](#presenter-notes)). |
 | **NDI receiver shows a frozen frame** | Not necessarily dead — the sender repeats the last frame every second by design ([NDI output](#ndi-output)). |
-| **macOS says the app is damaged** | Not the released build — those are signed and notarised. A self-built or pre-notarisation copy is quarantined; see the README's Gatekeeper section. |
+| **macOS says the app is damaged** | Not the released build — those are signed and notarised. A self-built or pre-notarisation copy is quarantined. Use the current release; [UNSIGNED.md](UNSIGNED.md#macos--nothing-to-do) shows how to check a copy is the notarised one. |
 
 ---
 
