@@ -27,7 +27,7 @@ and none of them is a feature I just haven't written yet.
 | Clickable internal links (TOC, "back to agenda") | ✅ | — | — | — | — | — |
 | Sections for `goto/section` | ✅ | — | — | ✅ | — | — |
 | Media play/pause/stop | — | — | — | ✅¹ | — | — |
-| Live screen capture (animations, video) | — | ✅ | ✅ | — | — | — |
+| Live screen capture (animations, video) | — | ✅ | ✅ | ✅ | — | — |
 | Needs the browser extension | — | — | — | — | ✅ | ✅ |
 | Needs OAuth setup | — | — | — | — | ✅ | — |
 
@@ -73,7 +73,7 @@ Both are proper NDI senders built against the official Vizrt SDK. Each **repeats
 once a second** as a keep-alive, so a static slide doesn't go stale for receivers expecting a
 steady feed. That means a frozen picture at the far end doesn't prove the sender's died.
 
-### Live capture (macOS, Keynote/PowerPoint)
+### Live capture (Keynote/PowerPoint)
 
 Instead of sending a static pre-exported frame, you can capture the screen live, so animations,
 transitions and embedded video actually appear in the NDI output. Opt in per stream with the gear
@@ -87,6 +87,9 @@ query reads. So pick the display the deck is on and crop if you need to.
 
 This needs **Screen Recording permission** on macOS. Grant it in System Settings → Privacy &
 Security → Screen Recording, and restart the app.
+
+On Windows it's offered for PowerPoint as well. I've only run it there in a Parallels VM, where
+Chromium's newer capture call failed and the app fell back to the older one.
 
 ---
 

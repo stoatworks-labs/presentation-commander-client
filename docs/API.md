@@ -265,7 +265,7 @@ something **omits the method entirely** rather than returning empty — so the d
 | Sections (`getSections`) | ✅ | — | ⚠ always empty | ✅ | — | — |
 | Media play/pause/stop | — | — | ⚠ silent no-op | ✅ | — | — |
 | Media duration | — | — | ⚠ always `null` | ✅ | — | — |
-| Live screen capture | — | ✅ (macOS) | ✅ (macOS) | — | — | — |
+| Live screen capture | — | ✅ (macOS) | ✅ (macOS) | ✅ | — | — |
 
 ⚠ **The PowerPoint source declares these methods on both platforms**, so on macOS the media and
 section addresses are *accepted and silently do nothing* rather than falling through as

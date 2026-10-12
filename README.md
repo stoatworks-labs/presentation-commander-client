@@ -94,7 +94,7 @@ macOS builds are signed and notarised and open normally. The Windows builds are 
   automation/virtualization on both, the same class of problem as Keynote's
   `start`/`show`). The editing view's current slide is enough for everything
   this app needs, since Program Out/NDI is what the audience actually sees.
-- **Live capture for Keynote/PowerPoint** (macOS): an alternative to the
+- **Live capture for Keynote/PowerPoint** (macOS and Windows): an alternative to the
   static pre-exported-PNG frames above. It captures the on-screen display
   live via `getDisplayMedia`, so animations, transitions and embedded video
   playback show up in the NDI output, rather than a still of however the
@@ -276,9 +276,10 @@ Feature-complete for its current scope: the bespoke PDF engine, the Keynote
 (macOS), PowerPoint (macOS and Windows), Google Slides and Canva sources,
 dual NDI outputs (Program + Next Slide), live capture for Keynote/PowerPoint,
 presenter notes, the Program Out window, and the Master Server link / Control
-Surface integration are all built and verified. Keynote drive and live
-capture are macOS-only (there's no Windows equivalent for either yet); PDF,
-Google Slides and Canva work on both platforms.
+Surface integration are all built and verified. Keynote drive is macOS-only.
+Live capture works for Keynote and PowerPoint on macOS and for PowerPoint on
+Windows, though on Windows I've only run it in a Parallels VM. PDF, Google
+Slides and Canva work on macOS, Windows and Linux.
 
 ## Documentation
 

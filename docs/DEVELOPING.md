@@ -68,8 +68,9 @@ npm run build:mac        # / :win / :linux
 - **There are no tests.** No test script, no test files. `typecheck` and `lint` are the only
   automated gates.
 
-All packaging runs `--publish never`. CI: `.github/workflows/build-windows.yml` and
-`release.yml`.
+All packaging runs `--publish never`. CI: `.github/workflows/build-windows.yml`,
+`release.yml`, and `ci.yml` (install, typecheck and build on pushes to main and on pull
+requests).
 
 ---
 
