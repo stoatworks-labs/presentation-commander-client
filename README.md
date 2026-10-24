@@ -20,19 +20,19 @@ driven over its own OSC control surface. It's running standalone here, not paire
 
 ## Download
 
-**[v1.3.1](https://github.com/stoatworks-labs/presentation-commander-client/releases/tag/v1.3.1)** — prebuilt for macOS, Windows and Linux. Pick your platform:
+**[v1.3.2](https://github.com/stoatworks-labs/presentation-commander-client/releases/tag/v1.3.2)** — prebuilt for macOS, Windows and Linux. Pick your platform:
 
 <details>
 <summary><b>macOS</b> — Apple Silicon, Intel</summary>
 
 | Build | Download | Size |
 | --- | --- | --- |
-| Apple Silicon · .dmg disk image | [`presentation-commander-client-1.3.1-arm64.dmg`](https://github.com/stoatworks-labs/presentation-commander-client/releases/download/v1.3.1/presentation-commander-client-1.3.1-arm64.dmg) | 161 MB |
-| Intel · .dmg disk image | [`presentation-commander-client-1.3.1-x64.dmg`](https://github.com/stoatworks-labs/presentation-commander-client/releases/download/v1.3.1/presentation-commander-client-1.3.1-x64.dmg) | 168 MB |
-| Apple Silicon · .pkg installer | [`presentation-commander-client-1.3.1-macos-arm64.pkg`](https://github.com/stoatworks-labs/presentation-commander-client/releases/download/v1.3.1/presentation-commander-client-1.3.1-macos-arm64.pkg) | 161 MB |
-| Intel · .pkg installer | [`presentation-commander-client-1.3.1-macos-x64.pkg`](https://github.com/stoatworks-labs/presentation-commander-client/releases/download/v1.3.1/presentation-commander-client-1.3.1-macos-x64.pkg) | 168 MB |
-| Apple Silicon · .zip archive | [`Presentation.Commander.Client-1.3.1-arm64-mac.zip`](https://github.com/stoatworks-labs/presentation-commander-client/releases/download/v1.3.1/Presentation.Commander.Client-1.3.1-arm64-mac.zip) | 161 MB |
-| Intel · .zip archive | [`Presentation.Commander.Client-1.3.1-mac.zip`](https://github.com/stoatworks-labs/presentation-commander-client/releases/download/v1.3.1/Presentation.Commander.Client-1.3.1-mac.zip) | 168 MB |
+| Apple Silicon · .dmg disk image | [`presentation-commander-client-1.3.2-arm64.dmg`](https://github.com/stoatworks-labs/presentation-commander-client/releases/download/v1.3.2/presentation-commander-client-1.3.2-arm64.dmg) | 161 MB |
+| Intel · .dmg disk image | [`presentation-commander-client-1.3.2-x64.dmg`](https://github.com/stoatworks-labs/presentation-commander-client/releases/download/v1.3.2/presentation-commander-client-1.3.2-x64.dmg) | 168 MB |
+| Apple Silicon · .pkg installer | [`presentation-commander-client-1.3.2-macos-arm64.pkg`](https://github.com/stoatworks-labs/presentation-commander-client/releases/download/v1.3.2/presentation-commander-client-1.3.2-macos-arm64.pkg) | 162 MB |
+| Intel · .pkg installer | [`presentation-commander-client-1.3.2-macos-x64.pkg`](https://github.com/stoatworks-labs/presentation-commander-client/releases/download/v1.3.2/presentation-commander-client-1.3.2-macos-x64.pkg) | 169 MB |
+| Apple Silicon · .zip archive | [`Presentation.Commander.Client-1.3.2-arm64-mac.zip`](https://github.com/stoatworks-labs/presentation-commander-client/releases/download/v1.3.2/Presentation.Commander.Client-1.3.2-arm64-mac.zip) | 162 MB |
+| Intel · .zip archive | [`Presentation.Commander.Client-1.3.2-mac.zip`](https://github.com/stoatworks-labs/presentation-commander-client/releases/download/v1.3.2/Presentation.Commander.Client-1.3.2-mac.zip) | 169 MB |
 
 </details>
 
@@ -41,9 +41,9 @@ driven over its own OSC control surface. It's running standalone here, not paire
 
 | Build | Download | Size |
 | --- | --- | --- |
-| x64 · .exe installer | [`presentation-commander-client-1.3.1-x64-setup.exe`](https://github.com/stoatworks-labs/presentation-commander-client/releases/download/v1.3.1/presentation-commander-client-1.3.1-x64-setup.exe) | 143 MB |
-| x64 · portable .exe | [`presentation-commander-client-1.3.1-x64-portable.exe`](https://github.com/stoatworks-labs/presentation-commander-client/releases/download/v1.3.1/presentation-commander-client-1.3.1-x64-portable.exe) | 143 MB |
-| .zip archive | [`Presentation.Commander.Client-1.3.1-win.zip`](https://github.com/stoatworks-labs/presentation-commander-client/releases/download/v1.3.1/Presentation.Commander.Client-1.3.1-win.zip) | 186 MB |
+| x64 · .exe installer | [`presentation-commander-client-1.3.2-x64-setup.exe`](https://github.com/stoatworks-labs/presentation-commander-client/releases/download/v1.3.2/presentation-commander-client-1.3.2-x64-setup.exe) | 143 MB |
+| x64 · portable .exe | [`presentation-commander-client-1.3.2-x64-portable.exe`](https://github.com/stoatworks-labs/presentation-commander-client/releases/download/v1.3.2/presentation-commander-client-1.3.2-x64-portable.exe) | 143 MB |
+| .zip archive | [`Presentation.Commander.Client-1.3.2-win.zip`](https://github.com/stoatworks-labs/presentation-commander-client/releases/download/v1.3.2/Presentation.Commander.Client-1.3.2-win.zip) | 186 MB |
 
 </details>
 
@@ -52,9 +52,9 @@ driven over its own OSC control surface. It's running standalone here, not paire
 
 | Build | Download | Size |
 | --- | --- | --- |
-| x64 · .deb package (Debian/Ubuntu) | [`presentation-commander-client_1.3.1_amd64.deb`](https://github.com/stoatworks-labs/presentation-commander-client/releases/download/v1.3.1/presentation-commander-client_1.3.1_amd64.deb) | 128 MB |
-| x64 · .rpm package (Fedora/RHEL) | [`presentation-commander-client-1.3.1.x86_64.rpm`](https://github.com/stoatworks-labs/presentation-commander-client/releases/download/v1.3.1/presentation-commander-client-1.3.1.x86_64.rpm) | 108 MB |
-| x64 · AppImage | [`presentation-commander-client-1.3.1-x86_64.AppImage`](https://github.com/stoatworks-labs/presentation-commander-client/releases/download/v1.3.1/presentation-commander-client-1.3.1-x86_64.AppImage) | 160 MB |
+| x64 · .deb package (Debian/Ubuntu) | [`presentation-commander-client_1.3.2_amd64.deb`](https://github.com/stoatworks-labs/presentation-commander-client/releases/download/v1.3.2/presentation-commander-client_1.3.2_amd64.deb) | 128 MB |
+| x64 · .rpm package (Fedora/RHEL) | [`presentation-commander-client-1.3.2.x86_64.rpm`](https://github.com/stoatworks-labs/presentation-commander-client/releases/download/v1.3.2/presentation-commander-client-1.3.2.x86_64.rpm) | 108 MB |
+| x64 · AppImage | [`presentation-commander-client-1.3.2-x86_64.AppImage`](https://github.com/stoatworks-labs/presentation-commander-client/releases/download/v1.3.2/presentation-commander-client-1.3.2-x86_64.AppImage) | 161 MB |
 
 </details>
 
