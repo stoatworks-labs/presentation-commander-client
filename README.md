@@ -9,6 +9,8 @@ The app that runs on the presentation laptop, paired with
 It's a bespoke PDF presentation engine, built as an Electron + React + TypeScript
 desktop app, so it doesn't need PowerPoint or Keynote to run a show.
 
+The [project page](https://stoatworks-labs.com/software/presentation-commander-client/) has the downloads, the [user guide](https://stoatworks-labs.com/software/presentation-commander-client/guide/) and the video.
+
 [![Watch it running (37 seconds)](docs/video-thumb.png)](https://www.youtube.com/watch?v=J2-2x-FDdw4)
 
 *A 37-second tour. It's the app itself the whole way through, presenting an actual PDF and
